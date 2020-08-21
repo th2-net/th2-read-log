@@ -38,7 +38,9 @@ public class LogReader implements AutoCloseable {
 	}
 	
 	public String getNextLine() {
-		return scanner.nextLine();
+		String result = scanner.nextLine();
+		logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",result));
+		return result;
 	}
 	
 	public String getFileName() {

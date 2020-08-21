@@ -2,6 +2,7 @@ package com.exactpro.th2.logreader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -38,10 +39,12 @@ public class Main extends Object  {
 			
 			while (reader.hasNextLine()) {
 				String line = reader.getNextLine();
-				String parsedLine = logParser.parse(line);
-				logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",line));
-				logger.trace("ParsedLogLine",StructuredArguments.value("ParsedLogLine",line));
-				client.publish(parsedLine);
+				
+				ArrayList<String> parsedLines = logParser.parse(line);
+								
+				for (String parsedLine: parsedLines) {
+					//client.publish(parsedLine);
+				}
 			}
 			
 			reader.close();
