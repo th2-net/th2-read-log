@@ -2,9 +2,9 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>1</groupId>
-  <artifactId>1</artifactId>
-  <version>th2-logreader-SNAPSHOT-0.0.1</version>
+  <groupId>com.exactpro.th2</groupId>
+  <artifactId>logreader</artifactId>
+  <version>SNAPSHOT-0.0.1</version>
   <packaging>jar</packaging>
 
   <name>DataReaderClient</name>
@@ -98,14 +98,58 @@
 	</dependency>	
   </dependencies>
   <build>
-  <extensions>
-    <extension>
-      <groupId>kr.motd.maven</groupId>
-      <artifactId>os-maven-plugin</artifactId>
-      <version>1.6.2</version>
-    </extension>
-  </extensions>
-  <plugins>
+	  <extensions>
+	    <extension>
+	      <groupId>kr.motd.maven</groupId>
+	      <artifactId>os-maven-plugin</artifactId>
+	      <version>1.6.2</version>
+	    </extension>
+	  </extensions>
+	<plugins>
+      <plugin>
+      <!-- Build an executable JAR -->
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-jar-plugin</artifactId>
+      <version>3.1.0</version>
+      <configuration>
+        <archive>
+          <manifest>
+            <addClasspath>true</addClasspath>
+            <classpathPrefix>lib/</classpathPrefix>
+            <mainClass>com.exactpro.th2.logreader.Main</mainClass>
+          </manifest>
+        </archive>
+      </configuration>
+    </plugin>
+<!-- Maven Assembly Plugin -->
+	<plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-assembly-plugin</artifactId>
+		<version>2.4.1</version>
+		<configuration>
+			<!-- get all project dependencies -->
+			<descriptorRefs>
+				<descriptorRef>jar-with-dependencies</descriptorRef>
+			</descriptorRefs>
+			<!-- MainClass in mainfest make a executable jar -->
+			<archive>
+			  <manifest>
+				<mainClass>com.exactpro.th2.logreader.Main</mainClass>
+			  </manifest>
+			</archive>
+
+		</configuration>
+		<executions>
+		  <execution>
+			<id>make-assembly</id>
+<!-- bind to the packaging phase -->
+			<phase>package</phase>
+			<goals>
+				<goal>single</goal>
+			</goals>
+		  </execution>
+		</executions>
+	</plugin>    
     <plugin>
       <groupId>org.xolstice.maven.plugins</groupId>
       <artifactId>protobuf-maven-plugin</artifactId>
