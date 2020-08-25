@@ -2,7 +2,7 @@ variables:
   APP_NAME: "th2-logreader"
   MAJOR_VERSION: "0"
   MINOR_VERSION: "5"
-  INSPECTION_ENABLED: 'true'
+  INSPECTION_ENABLED: 'false'
   TEST_ENABLED: 'false'
   ARTIFACTORY_PUBLISH: 'false'
   
