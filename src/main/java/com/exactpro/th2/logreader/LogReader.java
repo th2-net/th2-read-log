@@ -53,7 +53,7 @@ public class LogReader implements AutoCloseable {
 	}
 	
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		if (reader != null) {
 			reader.close();
 			closeState=true;
