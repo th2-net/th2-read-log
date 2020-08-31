@@ -1,6 +1,9 @@
 package com.exactpro.th2.logreader;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -106,7 +109,7 @@ public class RabbitMqClient {
 				);												
 	}
 	
-	public void connect() throws Exception {
+	public void connect() throws KeyManagementException, NoSuchAlgorithmException, URISyntaxException, IOException, TimeoutException {
 		
 		logger.info("Connecting to RabbitMQ", 
 				StructuredArguments.value("URI",amqpUri)

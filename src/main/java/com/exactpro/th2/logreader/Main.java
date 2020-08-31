@@ -2,8 +2,12 @@ package com.exactpro.th2.logreader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +19,7 @@ public class Main extends Object  {
 	
 	public static void main(String[] args) {
 		
-		try {		
+//		try {		
    			
 		    Properties props = new Properties();
 		    
@@ -24,12 +28,18 @@ public class Main extends Object  {
 		    try (InputStream configStream = classLoader.getResourceAsStream("logback.xml"))  {
 		        props.load(configStream);
 		    } catch (IOException e) {
-		        System.out.println("Errornot laod configuration file ");
+		        System.out.println("Error: can't laod log configuration file ");
 		    }    			
 	            	     
 		    RabbitMqClient client = new RabbitMqClient();
 	        
-	        client.connect();
+			try {
+				client.connect();
+			} catch (KeyManagementException | NoSuchAlgorithmException | URISyntaxException | IOException
+					| TimeoutException e) {
+				logger.error("{}", e);
+				System.exit(-1);
+			}
 	        
 			LogReader reader = new LogReader();
 			
@@ -37,21 +47,33 @@ public class Main extends Object  {
 			
 			RegexLogParser logParser = new RegexLogParser();
 			
-			while (reader.hasNextLine()) {
-				String line = reader.getNextLine();
-				
-				ArrayList<String> parsedLines = logParser.parse(line);
-								
-				for (String parsedLine: parsedLines) {
-					//client.publish(parsedLine);
+			try {
+				while (true) {
+					String line = reader.getNextLine();
+					
+					if (line != null) {										
+						ArrayList<String> parsedLines = logParser.parse(line);
+						for (String parsedLine: parsedLines) {
+							client.publish(parsedLine);
+						}								
+					} else {
+						Thread.sleep(5000);
+					}
 				}
-			}
 			
+			} catch (IOException| InterruptedException e) {
+				logger.error("{}", e);
+			}
+
 			reader.close();
 			
-			client.close();
-		} catch (Exception e) {		
-			logger.error("{}", e);
-		}
+			try {
+				client.close();
+			} catch (IOException | TimeoutException e) {
+				logger.error("{}", e);
+			}
+//		} catch (Exception e) {		
+//			logger.error("{}", e);
+//		}
 	}
 }

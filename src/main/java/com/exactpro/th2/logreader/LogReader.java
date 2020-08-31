@@ -1,7 +1,9 @@
 package com.exactpro.th2.logreader;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -14,7 +16,7 @@ import net.logstash.logback.argument.StructuredArguments;
 
 public class LogReader implements AutoCloseable {
 	private String fileName;
-	private Scanner scanner; 
+	private BufferedReader reader;
 	private Logger logger = LoggerFactory.getLogger(LogReader.class);
 	
 	private boolean closeState;
@@ -25,20 +27,18 @@ public class LogReader implements AutoCloseable {
 		closeState = false;
 		
 		try {
-			scanner = new Scanner(new File(fileName));
+			reader = new BufferedReader(new FileReader(fileName));
+			//scanner = new Scanner(new File(fileName));
 		} catch (FileNotFoundException e) {
 			logger.error("{}", e.getMessage(), StructuredArguments.value("stacktrace",e.getStackTrace()), e);			
 		}
 		
 		logger.info("Open log file", StructuredArguments.value("fileName",fileName));
 	}
-
-	public boolean hasNextLine() {
-		return scanner.hasNextLine();
-	}
 	
-	public String getNextLine() {
-		String result = scanner.nextLine();
+	public String getNextLine() throws IOException {
+		//String result = scanner.nextLine();
+		String result = reader.readLine();
 		logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",result));
 		return result;
 	}
@@ -54,8 +54,8 @@ public class LogReader implements AutoCloseable {
 	
 	@Override
 	public void close() {
-		if (scanner != null) {
-			scanner.close();
+		if (reader != null) {
+			reader.close();
 			closeState=true;
 		}
 		logger.info("Close log file", StructuredArguments.value("fileName",fileName));
