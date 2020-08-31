@@ -64,10 +64,9 @@ public class Main extends Object  {
 			} catch (IOException| InterruptedException e) {
 				logger.error("{}", e);
 			}
-
-			reader.close();
 			
 			try {
+				reader.close();
 				client.close();
 			} catch (IOException | TimeoutException e) {
 				logger.error("{}", e);
