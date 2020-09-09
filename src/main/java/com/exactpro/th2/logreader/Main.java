@@ -57,7 +57,13 @@ public class Main extends Object  {
 							client.publish(parsedLine);
 						}								
 					} else {
+						long linesCount = reader.getLinesCount();
+						
 						Thread.sleep(5000);
+						
+						reader.close();
+						reader.open();
+						reader.skip(linesCount);
 					}
 				}
 			

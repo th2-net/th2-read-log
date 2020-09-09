@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,26 +21,45 @@ public class LogReader implements AutoCloseable {
 	private Logger logger = LoggerFactory.getLogger(LogReader.class);
 	
 	private boolean closeState;
+	private long linesCount;
 	
 	public LogReader() {
 		this.fileName = System.getenv("LOG_FILE_NAME");
-		
+		open();
+	}
+	
+	public void open() {
 		closeState = false;
 		
 		try {
 			reader = new BufferedReader(new FileReader(fileName));
-			//scanner = new Scanner(new File(fileName));
 		} catch (FileNotFoundException e) {
 			logger.error("{}", e.getMessage(), StructuredArguments.value("stacktrace",e.getStackTrace()), e);			
 		}
 		
 		logger.info("Open log file", StructuredArguments.value("fileName",fileName));
+		linesCount = 0;		
+	}
+	
+	public void skip(long lineNumber) throws IOException {		
+		logger.trace("Skipping",StructuredArguments.value("LinesToSkip",lineNumber));
+		
+		for (long i=0; i<lineNumber; ++i) {
+			reader.readLine();
+			++linesCount;
+		}
+	}
+	
+	public long getLinesCount() {
+		return linesCount;
 	}
 	
 	public String getNextLine() throws IOException {
-		//String result = scanner.nextLine();
 		String result = reader.readLine();
 		logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",result));
+		if (result != null) {
+			++linesCount;
+		}
 		return result;
 	}
 	
