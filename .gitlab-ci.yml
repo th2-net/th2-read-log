@@ -9,4 +9,4 @@ variables:
 include:
   - project: 'vivarium/th2/pipelines'
     ref: master
-    file: '/.gitlab-ci-java-template.yml'
+    file: '/.gitlab-ci-java.yml'
