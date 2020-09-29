@@ -2,6 +2,16 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+	<repositories>
+	  <repository>
+	  	<id>exactpro</id>
+	    <url>http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local</url>
+	        <snapshots>
+	            <enabled>true</enabled>
+	        </snapshots>
+	  </repository>	
+	</repositories>
+  
   <groupId>com.exactpro.th2</groupId>
   <artifactId>logreader</artifactId>
   <version>SNAPSHOT-0.0.1</version>
@@ -34,6 +44,12 @@
   		<artifactId>amqp-client</artifactId>
   		<version>5.9.0</version>
 	</dependency>
+	<!--  http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local -->
+	<!--dependency>
+		<groupId>com.exactpro.th2</groupId>
+		<artifactId>th2-common</artifactId>		
+		<version>1.1-SNAPSHOT</version>		
+	</dependency-->
 	<!-- https://mvnrepository.com/artifact/io.grpc/grpc-netty -->
 	<dependency>
     	<groupId>io.grpc</groupId>
@@ -57,16 +73,6 @@
   		<artifactId>logstash-logback-encoder</artifactId>
   		<version>5.2</version>
 	</dependency>
-	<!--  dependency> 
-	  <groupId>ch.qos.logback</groupId>
-	  <artifactId>logback-classic</artifactId>
-	  <version>1.2.3</version>
-	</dependency>
-	<dependency> 
-	  <groupId>org.slf4j</groupId>
-	  <artifactId>slf4j-log4j12</artifactId>
-	  <version>1.7.28</version>	  
-	</dependency-->
 	
 	<dependency>
 		<groupId>ch.qos.logback</groupId>
