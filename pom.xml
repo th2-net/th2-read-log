@@ -1,16 +1,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
-	<repositories>
-	  <repository>
-	  	<id>exactpro</id>
-	    <url>http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local</url>
-	        <snapshots>
-	            <enabled>true</enabled>
-	        </snapshots>
-	  </repository>	
-	</repositories>
+    <repositories>
+        <repository>
+            <id>exactpro</id>
+            <url>http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>exactpro-release</id>
+            <url>https://artifactory5.exactpro.com/artifactory/libs-release</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
   
   <groupId>com.exactpro.th2</groupId>
   <artifactId>logreader</artifactId>
@@ -26,8 +32,22 @@
     <maven.compiler.source>1.9</maven.compiler.source>
     <maven.compiler.target>1.9</maven.compiler.target>
   </properties>
-
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.exactpro.th2</groupId>
+                <artifactId>th2-bom</artifactId>
+                <version>1.1.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
   <dependencies>
+    <dependency>
+      <groupId>com.exactpro.th2</groupId>
+      <artifactId>th2-grpc-infra</artifactId>
+    </dependency>
   	<dependency>
   		<groupId>javax.annotation</groupId>
   		<artifactId>javax.annotation-api</artifactId>
@@ -156,24 +176,6 @@
 		  </execution>
 		</executions>
 	</plugin>    
-    <plugin>
-      <groupId>org.xolstice.maven.plugins</groupId>
-      <artifactId>protobuf-maven-plugin</artifactId>
-      <version>0.6.1</version>
-      <configuration>
-        <protocArtifact>com.google.protobuf:protoc:3.11.0:exe:${os.detected.classifier}</protocArtifact>
-        <pluginId>grpc-java</pluginId>
-        <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.29.0:exe:${os.detected.classifier}</pluginArtifact>
-      </configuration>
-      <executions>
-        <execution>
-          <goals>
-            <goal>compile</goal>
-            <goal>compile-custom</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
   </plugins>
 </build>
 </project>
