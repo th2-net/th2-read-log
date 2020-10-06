@@ -124,10 +124,8 @@ public class RabbitMqClient {
 		conn = factory.newConnection();
 		
 		channel = conn.createChannel();
-
-		//channel.queueDeclare("", false, false, true, null);
-		
-		channel.queueBind(null,exchangeName, queueName);
+	
+		channel.queueBind("",exchangeName, queueName);
 					
 		System.out.println("Done");
 	}
