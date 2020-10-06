@@ -53,14 +53,21 @@ public class Main extends Object  {
 					for (String parsedLine: parsedLines) {
 						client.publish(parsedLine);
 					}								
-				} else {
-					long linesCount = reader.getLinesCount();
+				} else {			
+					long linesCount = reader.getLineCount();
 					
-					Thread.sleep(5000);
+					long processedLinesCount = reader.getProcessedLinesCount();
 					
-					reader.close();
-					reader.open();
-					reader.skip(linesCount);
+					if (linesCount > processedLinesCount) {
+						reader.close();
+						reader.open();
+						reader.skip(processedLinesCount);	
+					} else if (linesCount < processedLinesCount) {
+						reader.close();
+						reader.open();						
+					} else {
+						Thread.sleep(5000);
+					}
 				}
 			}
 		

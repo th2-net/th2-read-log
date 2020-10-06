@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.stream.Stream;
@@ -21,7 +22,7 @@ public class LogReader implements AutoCloseable {
 	private Logger logger = LoggerFactory.getLogger(LogReader.class);
 	
 	private boolean closeState;
-	private long linesCount;
+	private long processedLinesCount;
 	
 	public LogReader() {
 		this.fileName = System.getenv("LOG_FILE_NAME");
@@ -38,7 +39,14 @@ public class LogReader implements AutoCloseable {
 		}
 		
 		logger.info("Open log file", StructuredArguments.value("fileName",fileName));
-		linesCount = 0;		
+		processedLinesCount = 0;		
+	}
+	
+	public long getLineCount() throws IOException {
+
+	    try (Stream<String> lines = Files.lines(new File(fileName).toPath())) {
+	        return lines.count();
+	    }
 	}
 	
 	public void skip(long lineNumber) throws IOException {		
@@ -46,19 +54,19 @@ public class LogReader implements AutoCloseable {
 		
 		for (long i=0; i<lineNumber; ++i) {
 			reader.readLine();
-			++linesCount;
+			++processedLinesCount;
 		}
 	}
 	
-	public long getLinesCount() {
-		return linesCount;
+	public long getProcessedLinesCount() {
+		return processedLinesCount;
 	}
 	
 	public String getNextLine() throws IOException {
 		String result = reader.readLine();
 		logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",result));
 		if (result != null) {
-			++linesCount;
+			++processedLinesCount;
 		}
 		return result;
 	}
