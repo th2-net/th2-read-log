@@ -1,4 +1,20 @@
-package com.exactpro.th2.logreader;
+/*
+ * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.exactpro.th2.readlog;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,23 +29,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main extends Object  {
-	
+
 	private final static Logger logger = LoggerFactory.getLogger(Main.class);
-	
+
 	public static void main(String[] args) {
 
 	    Properties props = new Properties();
-	    
+
 	    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-	    
+
 	    try (InputStream configStream = classLoader.getResourceAsStream("logback.xml"))  {
 	        props.load(configStream);
 	    } catch (IOException e) {
 	        System.out.println("Error: can't laod log configuration file ");
 	    }    			
-            	     
+
 	    RabbitMqClient client = new RabbitMqClient();
-        
+
 		try {
 			client.connect();
 		} catch (KeyManagementException | NoSuchAlgorithmException | URISyntaxException | IOException
@@ -37,17 +53,17 @@ public class Main extends Object  {
 			logger.error("{}", e);
 			System.exit(-1);
 		}
-        
+
 		LogReader reader = new LogReader();
-		
+
 		client.setSessionAlias(reader.getFileName());
-		
+
 		RegexLogParser logParser = new RegexLogParser();
-		
+
 		try {
 			while (true) {
 				String line = reader.getNextLine();
-				
+
 				if (line != null) {										
 					ArrayList<String> parsedLines = logParser.parse(line);
 					for (String parsedLine: parsedLines) {
@@ -55,9 +71,9 @@ public class Main extends Object  {
 					}								
 				} else {			
 					long linesCount = reader.getLineCount();
-					
+
 					long processedLinesCount = reader.getProcessedLinesCount();
-					
+
 					if (linesCount > processedLinesCount) {
 						reader.close();
 						reader.open();
@@ -70,11 +86,11 @@ public class Main extends Object  {
 					}
 				}
 			}
-		
+
 		} catch (IOException| InterruptedException e) {
 			logger.error("{}", e);
 		}
-		
+
 		try {
 			reader.close();
 			client.close();
