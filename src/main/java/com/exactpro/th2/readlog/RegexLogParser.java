@@ -1,4 +1,4 @@
-package com.exactpro.th2.logreader;
+package com.exactpro.th2.readlog;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;

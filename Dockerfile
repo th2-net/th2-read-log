@@ -1,8 +1,7 @@
-FROM maven:3.6.0-jdk-11-slim AS build
-COPY src /app/src
-COPY pom.xml /app
-RUN mvn -f /app/pom.xml clean package
-
+FROM gradle:6.6-jdk11 AS build
+ARG release_version
+COPY ./ .
+RUN gradle clean build dockerPrepare -Prelease_version=${release_version}
 
 FROM openjdk:11-jre-slim
 ENV RABBITMQ_HOST=host \
@@ -14,7 +13,6 @@ ENV RABBITMQ_HOST=host \
     LOG_FILE_NAME=filename \
 	REGEX=regex \
 	REGEX_GROUP=regex_group 
-	
-COPY --from=build /app/target/logreader-SNAPSHOT-0.0.1-jar-with-dependencies.jar /usr/local/lib/logreader.jar
-
-ENTRYPOINT ["java","-jar","/usr/local/lib/logreader.jar"]
+WORKDIR /home
+COPY --from=build /home/gradle/build/docker .
+ENTRYPOINT ["/home/service/bin/service"]

@@ -1,4 +1,4 @@
-package com.exactpro.th2.logreader;
+package com.exactpro.th2.readlog;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -14,19 +14,19 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.exactpro.th2.infra.grpc.ConnectionID;
-import com.exactpro.th2.infra.grpc.Direction;
-import com.exactpro.th2.infra.grpc.MessageID;
-import com.exactpro.th2.infra.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.ConnectionID;
+import com.exactpro.th2.common.grpc.Direction;
+import com.exactpro.th2.common.grpc.MessageID;
+import com.exactpro.th2.common.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.RawMessageBatch;
+import com.exactpro.th2.common.grpc.RawMessageMetadata;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import net.logstash.logback.argument.StructuredArguments;
-import com.exactpro.th2.infra.grpc.RawMessageBatch;
-import com.exactpro.th2.infra.grpc.RawMessageMetadata;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
 
 public class RabbitMqClient {
 	

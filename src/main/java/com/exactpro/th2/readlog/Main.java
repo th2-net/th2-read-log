@@ -1,4 +1,4 @@
-package com.exactpro.th2.logreader;
+package com.exactpro.th2.readlog;
 
 import java.io.IOException;
 import java.io.InputStream;

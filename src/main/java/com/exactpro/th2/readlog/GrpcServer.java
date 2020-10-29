@@ -1,13 +1,13 @@
-package com.exactpro.th2.logreader;
+package com.exactpro.th2.readlog;
 
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.grpc.BindableService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 public class GrpcServer {
     private Logger logger = LoggerFactory.getLogger(getClass().getName());
