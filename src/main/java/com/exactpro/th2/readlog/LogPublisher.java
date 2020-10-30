@@ -103,7 +103,7 @@ public class LogPublisher implements AutoCloseable {
         RawMessageBatch batch = builder.build();
 
         if (batch.getMessagesCount() > 0) {
-            batchMessageRouter.send(batch, QueueAttribute.PUBLISH.toString(), QueueAttribute.RAW.toString());
+            batchMessageRouter.sendAll(batch, QueueAttribute.PUBLISH.toString(), QueueAttribute.RAW.toString());
 
             logger.trace("Raw batch published: {}", JsonFormat.printer().omittingInsignificantWhitespace().print(batch));
         } else {
