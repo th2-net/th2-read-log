@@ -16,60 +16,68 @@
 
 package com.exactpro.th2.readlog;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.exactpro.th2.common.metrics.CommonMetrics;
+import com.exactpro.th2.common.schema.factory.CommonFactory;
+import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
+
 public class Main extends Object  {
 
-	private final static Logger logger = LoggerFactory.getLogger(Main.class);
+	private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
 	public static void main(String[] args) {
+        Deque<AutoCloseable> toDispose = new ArrayDeque<>();
 
-	    Properties props = new Properties();
+        // Probably we should not use shutdown hook in application that does everything in the Main thread.
+        // But I believe that it will be changed soon the and reader will become multithreading-reader.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> closeResources(toDispose), "Shutdown hook"));
+
+        CommonMetrics.setLiveness(true);
+        CommonFactory commonFactory = CommonFactory.createFromArguments(args);
+        toDispose.add(commonFactory);
+
+        Properties props = new Properties();
 
 	    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
 	    try (InputStream configStream = classLoader.getResourceAsStream("logback.xml"))  {
 	        props.load(configStream);
 	    } catch (IOException e) {
-	        System.out.println("Error: can't laod log configuration file ");
-	    }    			
+	        logger.error("Error: can't load log configuration file", e);
+	    }
 
-	    RabbitMqClient client = new RabbitMqClient();
+        LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class);
 
-		try {
-			client.connect();
-		} catch (KeyManagementException | NoSuchAlgorithmException | URISyntaxException | IOException
-				| TimeoutException e) {
-			logger.error("{}", e);
-			System.exit(-1);
-		}
+        File logFile = configuration.getLogFile();
+        LogPublisher publisher = new LogPublisher(logFile.getName(), commonFactory.getMessageRouterRawBatch());
+        toDispose.add(publisher);
 
-		LogReader reader = new LogReader();
+		LogReader reader = new LogReader(logFile);
+		toDispose.add(reader);
 
-		client.setSessionAlias(reader.getFileName());
-
-		RegexLogParser logParser = new RegexLogParser();
+		RegexLogParser logParser = new RegexLogParser(configuration.getRegexp(), configuration.getRegexpGroups());
+		CommonMetrics.setReadiness(true);
 
 		try {
 			while (true) {
 				String line = reader.getNextLine();
 
-				if (line != null) {										
-					ArrayList<String> parsedLines = logParser.parse(line);
+				if (line != null) {
+					List<String> parsedLines = logParser.parse(line);
 					for (String parsedLine: parsedLines) {
-						client.publish(parsedLine);
-					}								
-				} else {			
+						publisher.publish(parsedLine);
+					}
+				} else {
 					long linesCount = reader.getLineCount();
 
 					long processedLinesCount = reader.getProcessedLinesCount();
@@ -77,10 +85,10 @@ public class Main extends Object  {
 					if (linesCount > processedLinesCount) {
 						reader.close();
 						reader.open();
-						reader.skip(processedLinesCount);	
+						reader.skip(processedLinesCount);
 					} else if (linesCount < processedLinesCount) {
 						reader.close();
-						reader.open();						
+						reader.open();
 					} else {
 						Thread.sleep(5000);
 					}
@@ -88,14 +96,19 @@ public class Main extends Object  {
 			}
 
 		} catch (IOException| InterruptedException e) {
-			logger.error("{}", e);
-		}
-
-		try {
-			reader.close();
-			client.close();
-		} catch (IOException | TimeoutException e) {
-			logger.error("{}", e);
+			logger.error("Cannot read log file: {}", logFile, e);
 		}
 	}
+
+    private static void closeResources(Deque<AutoCloseable> toDispose) {
+        CommonMetrics.setReadiness(false);
+        toDispose.descendingIterator().forEachRemaining(resource -> {
+            try {
+                resource.close();
+            } catch (Exception e) {
+                logger.error("Cannot close resource", e);
+            }
+        });
+        CommonMetrics.setLiveness(false);
+    }
 }

@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -30,15 +31,15 @@ import org.slf4j.LoggerFactory;
 import net.logstash.logback.argument.StructuredArguments;
 
 public class LogReader implements AutoCloseable {
-	private String fileName;
+	private final File file;
 	private BufferedReader reader;
 	private Logger logger = LoggerFactory.getLogger(LogReader.class);
 
 	private boolean closeState;
 	private long processedLinesCount;
 
-	public LogReader() {
-		this.fileName = System.getenv("LOG_FILE_NAME");
+	public LogReader(File file) {
+		this.file = Objects.requireNonNull(file, "'File' parameter");
 		open();
 	}
 
@@ -46,24 +47,24 @@ public class LogReader implements AutoCloseable {
 		closeState = false;
 
 		try {
-			reader = new BufferedReader(new FileReader(fileName));
+			reader = new BufferedReader(new FileReader(file));
 		} catch (FileNotFoundException e) {
-			logger.error("{}", e.getMessage(), StructuredArguments.value("stacktrace",e.getStackTrace()), e);			
+			logger.error("{}, {}", e.getMessage(), StructuredArguments.value("stacktrace",e.getStackTrace()), e);
 		}
 
-		logger.info("Open log file", StructuredArguments.value("fileName",fileName));
+		logger.info("Open log file {}", StructuredArguments.value("file", file));
 		processedLinesCount = 0;		
 	}
 
 	public long getLineCount() throws IOException {
 
-	    try (Stream<String> lines = Files.lines(new File(fileName).toPath())) {
+	    try (Stream<String> lines = Files.lines(file.toPath())) {
 	        return lines.count();
 	    }
 	}
 
 	public void skip(long lineNumber) throws IOException {		
-		logger.trace("Skipping",StructuredArguments.value("LinesToSkip",lineNumber));
+		logger.trace("Skipping {}",StructuredArguments.value("LinesToSkip",lineNumber));
 
 		for (long i=0; i<lineNumber; ++i) {
 			reader.readLine();
@@ -77,15 +78,11 @@ public class LogReader implements AutoCloseable {
 
 	public String getNextLine() throws IOException {
 		String result = reader.readLine();
-		logger.trace("RawLogLine",StructuredArguments.value("RawLogLine",result));
+		logger.trace("RawLogLine {}",StructuredArguments.value("RawLogLine",result));
 		if (result != null) {
 			++processedLinesCount;
 		}
 		return result;
-	}
-
-	public String getFileName() {
-		return fileName;
 	}
 
 
@@ -99,6 +96,6 @@ public class LogReader implements AutoCloseable {
 			reader.close();
 			closeState=true;
 		}
-		logger.info("Close log file", StructuredArguments.value("fileName",fileName));
+		logger.info("Close log file {}", StructuredArguments.value("fileName", file));
 	}
 }

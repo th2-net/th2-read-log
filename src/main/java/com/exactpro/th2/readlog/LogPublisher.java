@@ -17,15 +17,11 @@
 package com.exactpro.th2.readlog;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,44 +32,34 @@ import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
+import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.common.schema.message.QueueAttribute;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.google.protobuf.util.JsonFormat;
 
-import net.logstash.logback.argument.StructuredArguments;
+/**
+ * Accumulates lines in batches and publishes them.
+ *
+ * NOTE: This class is not thread-safe
+ */
+public class LogPublisher implements AutoCloseable {
 
-public class RabbitMqClient {
+    private static final Logger logger = LoggerFactory.getLogger(LogPublisher.class);
+    private static final int CHARACTER_BATCH_LIMIT = 100000000;
+    private static final int LINES_BATCH_LIMIT = 100;
+    private final MessageRouter<RawMessageBatch> batchMessageRouter;
+    private final String sessionAlias;
 
-	private final Logger logger = LoggerFactory.getLogger(RabbitMqClient.class);
-
-	private String amqpUri = "";
-
-	private String exchangeName = "demo_exchange";
-	private String queueName = "logreader.first.";
-	private String queuePostfix = "default";
-	private Channel channel = null;
-	private Connection conn = null;
-	private String sessionAlias = "";
 	private long index = 0;
-	private List<String> listOfLines = new ArrayList<String>();
+	private final List<String> listOfLines = new ArrayList<String>();
 	private long size = 0;
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
 
-	public RabbitMqClient() {
-        Map<String, String> env = System.getenv();
-
-        String host = env.get("RABBITMQ_HOST");
-        String port = env.get("RABBITMQ_PORT");
-        String vHost = env.get("RABBITMQ_VHOST");
-        String user = env.get("RABBITMQ_USER");
-        String password = env.get("RABBITMQ_PASS");
-        exchangeName = env.get("RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY");
-        queuePostfix = env.get("RABBITMQ_QUEUE_POSTFIX");
-
-        amqpUri = "amqp://" + user + ":" + password + "@" + host + ":" + port + "/" + vHost;
-	}
+    public LogPublisher(String sessionAlias, MessageRouter<RawMessageBatch> batchMessageRouter) {
+        this.sessionAlias = Objects.requireNonNull(sessionAlias, "'Session alias' parameter");
+        this.batchMessageRouter = Objects.requireNonNull(batchMessageRouter, "'Batch message router' parameter");
+    }
 
 	private void publish() throws IOException {
 		RawMessageBatch.Builder builder = RawMessageBatch.newBuilder();
@@ -114,35 +100,16 @@ public class RabbitMqClient {
 
 		listOfLines.clear();
 
-		byte[] data = builder.build().toByteArray();
+        RawMessageBatch batch = builder.build();
 
-		channel.basicPublish(exchangeName, queueName, null, data);
+        if (batch.getMessagesCount() > 0) {
+            batchMessageRouter.send(batch, QueueAttribute.PUBLISH.toString(), QueueAttribute.RAW.toString());
 
-		logger.trace("publish",
-				StructuredArguments.value("exchangeName",exchangeName),
-				StructuredArguments.value("queueName",queueName),
-				StructuredArguments.value("data",data)
-				);												
-	}
-
-	public void connect() throws KeyManagementException, NoSuchAlgorithmException, URISyntaxException, IOException, TimeoutException {
-
-		logger.info("Connecting to RabbitMQ", 
-				StructuredArguments.value("URI",amqpUri)
-				);
-
-		queueName += queuePostfix;
-
-		ConnectionFactory factory = new ConnectionFactory();
-
-		factory.setUri(amqpUri);
-
-		conn = factory.newConnection();
-
-		channel = conn.createChannel();
-
-		System.out.println("Done");
-	}
+            logger.trace("Raw batch published: {}", JsonFormat.printer().omittingInsignificantWhitespace().print(batch));
+        } else {
+            logger.trace("Skip publishing empty batch");
+        }
+    }
 
 	public void publish(String line) throws IOException {
 
@@ -150,8 +117,8 @@ public class RabbitMqClient {
 
 		listOfLines.add(line);
 
-		if (	(listOfLines.size() > 100) || 
-				(size > 100000000) || 
+		if (	(listOfLines.size() > LINES_BATCH_LIMIT) ||
+				(size > CHARACTER_BATCH_LIMIT) ||
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
 
 			lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
@@ -161,20 +128,13 @@ public class RabbitMqClient {
 		}		
 	}
 
+    @Override
+    public void close() throws IOException {
+        if (!listOfLines.isEmpty()) {
+            // we need to publish all data left
+            publish();
+        }
 
-	public void setSessionAlias(String alias) {
-		sessionAlias = alias;
-	}
-
-	public void close() throws IOException, TimeoutException {
-
-		if (!listOfLines.isEmpty()) {
-			publish();
-		}
-
-		channel.close();
-		conn.close();
-		
-		logger.info("Disconecting from RabbitMQ");
-	}
+        logger.info("Publisher closed");
+    }
 }
