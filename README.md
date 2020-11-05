@@ -14,7 +14,6 @@ Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 ### Quick start
 
 #### Configuration
-=============
 
 ##### Reader confgiuration
 
@@ -37,7 +36,7 @@ If not specified - will send all matched groups.
 
 ##### Pin declaration
 
-The log reader requires a single pin with _publish_ and _raw_ attributes.
+The log reader requires a single pin with _publish_ and _raw_ attributes. The data is published in a raw format. To use it please conect the output pin with another pin that transforms raw data to parsed data. E.g. the **codec** box.
 
 Example:
 ```yaml
@@ -49,7 +48,7 @@ spec:
   pins:
     - name: out_log
       connection-type: mq
-      attributes: ['raw', 'publish']
+      attributes: ['raw', 'publish', 'store']
 ```
 
 ### Examples
