@@ -20,9 +20,9 @@ Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 Example:
 ```json
 {
-  "logFile": "path/to/file.log",
+  "log-file": "path/to/file.log",
   "regexp": "some*regexp",
-  "regexpGroups": [0,2]
+  "regexp-groups": [0,2]
 }
 ```
 
