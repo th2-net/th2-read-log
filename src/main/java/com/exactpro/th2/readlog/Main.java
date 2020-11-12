@@ -62,13 +62,13 @@ public class Main extends Object  {
         LogPublisher publisher = new LogPublisher(logFile.getName(), commonFactory.getMessageRouterRawBatch());
         toDispose.add(publisher);
 
-		LogReader reader = new LogReader(logFile);
-		toDispose.add(reader);
 
 		RegexLogParser logParser = new RegexLogParser(configuration.getRegexp(), configuration.getRegexpGroups());
 		CommonMetrics.setReadiness(true);
 
 		try {
+            LogReader reader = new LogReader(logFile);
+            toDispose.add(reader);
 			while (true) {
 				String line = reader.getNextLine();
 

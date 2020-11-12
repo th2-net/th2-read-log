@@ -38,23 +38,17 @@ public class LogReader implements AutoCloseable {
 	private boolean closeState;
 	private long processedLinesCount;
 
-	public LogReader(File file) {
+	public LogReader(File file) throws FileNotFoundException {
 		this.file = Objects.requireNonNull(file, "'File' parameter");
 		open();
 	}
 
-	public void open() {
-		closeState = false;
-
-		try {
-			reader = new BufferedReader(new FileReader(file));
-		} catch (FileNotFoundException e) {
-			logger.error("{}, {}", e.getMessage(), StructuredArguments.value("stacktrace",e.getStackTrace()), e);
-		}
-
-		logger.info("Open log file {}", StructuredArguments.value("file", file));
-		processedLinesCount = 0;		
-	}
+    public void open() throws FileNotFoundException {
+        closeState = false;
+        reader = new BufferedReader(new FileReader(file));
+        logger.info("Open log file {}", StructuredArguments.value("file", file));
+        processedLinesCount = 0;
+    }
 
 	public long getLineCount() throws IOException {
 
@@ -63,7 +57,7 @@ public class LogReader implements AutoCloseable {
 	    }
 	}
 
-	public void skip(long lineNumber) throws IOException {		
+	public void skip(long lineNumber) throws IOException {
 		logger.trace("Skipping {}",StructuredArguments.value("LinesToSkip",lineNumber));
 
 		for (long i=0; i<lineNumber; ++i) {
@@ -89,7 +83,7 @@ public class LogReader implements AutoCloseable {
 	public boolean isClosed() {
 		return closeState;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		if (reader != null) {
