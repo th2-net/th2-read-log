@@ -146,7 +146,7 @@ public class RabbitMqClient {
 	}
 	
 	public void publish(String line) throws IOException {
-        int lineLength = line.length();
+        int lineLength = line.getBytes().length;
         if (lineLength > BATCH_SIZE_LIMIT) {
             throw new IllegalArgumentException("The input line must not be longer than " + BATCH_SIZE_LIMIT + " but was " + lineLength);
         }
