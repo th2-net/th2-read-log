@@ -60,8 +60,9 @@ public class RabbitMqClient {
 	private List<String> listOfLines = new ArrayList<String>();
 	private long size = 0;
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
-	
-	public RabbitMqClient() {
+    private static final int BATCH_SIZE_LIMIT = 100000000;
+
+    public RabbitMqClient() {
         Map<String, String> env = System.getenv();
         
         String host = env.get("RABBITMQ_HOST");
@@ -145,24 +146,33 @@ public class RabbitMqClient {
 	}
 	
 	public void publish(String line) throws IOException {
-		
-		size += line.length();
+        int lineLength = line.length();
+        if (lineLength > BATCH_SIZE_LIMIT) {
+            throw new IllegalArgumentException("The input line must not be longer than " + BATCH_SIZE_LIMIT + " but was " + lineLength);
+        }
+
+        if (size + lineLength > BATCH_SIZE_LIMIT) {
+            resetAndPublish();
+        }
+		size += lineLength;
 		
 		listOfLines.add(line);
-		
-		if (	(listOfLines.size() >= 100) ||
-				(size >= 100000000) ||
+
+        if (	(listOfLines.size() >= 100) ||
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
-			
-			lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
-			size = 0;
-			
-			publish();
-		}		
+
+            resetAndPublish();
+        }
 	}
-	
-	
-	public void setSessionAlias(String alias) {
+
+    private void resetAndPublish() throws IOException {
+        lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
+        size = 0;
+
+        publish();
+    }
+
+    public void setSessionAlias(String alias) {
 		sessionAlias = alias;
 	}
 	
