@@ -47,7 +47,9 @@ public class LogPublisher implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(LogPublisher.class);
     private static final int CHARACTER_BATCH_LIMIT = 100000000;
-    private static final int LINES_BATCH_LIMIT = 100;
+    private final int characterBatchLimit;
+    static final int LINES_BATCH_LIMIT = 100;
+    private final int linesBatchLimit;
     private final MessageRouter<RawMessageBatch> batchMessageRouter;
     private final String sessionAlias;
 
@@ -57,8 +59,21 @@ public class LogPublisher implements AutoCloseable {
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
 
     public LogPublisher(String sessionAlias, MessageRouter<RawMessageBatch> batchMessageRouter) {
+        this(sessionAlias, batchMessageRouter, LINES_BATCH_LIMIT, CHARACTER_BATCH_LIMIT);
+    }
+
+    LogPublisher(String sessionAlias, MessageRouter<RawMessageBatch> batchMessageRouter, int linesLimit, int charactersLimit) {
         this.sessionAlias = Objects.requireNonNull(sessionAlias, "'Session alias' parameter");
         this.batchMessageRouter = Objects.requireNonNull(batchMessageRouter, "'Batch message router' parameter");
+        if (linesLimit <= 0) {
+            throw new IllegalArgumentException("'linesLimit' must be a positive integer");
+        }
+        linesBatchLimit = linesLimit;
+
+        if (charactersLimit <= 0) {
+            throw new IllegalArgumentException("'charactersLimit' must be a positive integer");
+        }
+        characterBatchLimit = charactersLimit;
     }
 
 	private void publish() throws IOException {
@@ -112,21 +127,31 @@ public class LogPublisher implements AutoCloseable {
     }
 
 	public void publish(String line) throws IOException {
+        int lineLength = line.length();
+        if (lineLength > characterBatchLimit) {
+            throw new IllegalArgumentException("The input line must not be longer than " + characterBatchLimit + " but was " + lineLength);
+        }
 
-		size += line.length();
+        if (size + lineLength > characterBatchLimit) {
+            resetAndPublish();
+        }
+		size += lineLength;
 
 		listOfLines.add(line);
 
-		if (	(listOfLines.size() > LINES_BATCH_LIMIT) ||
-				(size > CHARACTER_BATCH_LIMIT) ||
+		if (	(listOfLines.size() >= linesBatchLimit) ||
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
 
-			lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
-			size = 0;
-
-			publish();
-		}		
+            resetAndPublish();
+        }
 	}
+
+    private void resetAndPublish() throws IOException {
+        lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
+        size = 0;
+
+        publish();
+    }
 
     @Override
     public void close() throws IOException {

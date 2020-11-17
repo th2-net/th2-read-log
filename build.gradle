@@ -68,7 +68,12 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-api'
 
-    testImplementation 'junit:junit:3.8.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
+    testImplementation 'org.mockito:mockito-core:3.6.0'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jar {
