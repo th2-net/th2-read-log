@@ -127,7 +127,7 @@ public class LogPublisher implements AutoCloseable {
     }
 
 	public void publish(String line) throws IOException {
-        int lineLength = line.length();
+        int lineLength = line.getBytes().length;
         if (lineLength > characterBatchLimit) {
             throw new IllegalArgumentException("The input line must not be longer than " + characterBatchLimit + " but was " + lineLength);
         }
