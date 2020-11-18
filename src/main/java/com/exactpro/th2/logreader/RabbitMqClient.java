@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.exactpro.th2.logreader;
 
 import java.io.IOException;
@@ -44,8 +60,9 @@ public class RabbitMqClient {
 	private List<String> listOfLines = new ArrayList<String>();
 	private long size = 0;
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
-	
-	public RabbitMqClient() {
+    private static final int BATCH_SIZE_LIMIT = 100000000;
+
+    public RabbitMqClient() {
         Map<String, String> env = System.getenv();
         
         String host = env.get("RABBITMQ_HOST");
@@ -129,24 +146,33 @@ public class RabbitMqClient {
 	}
 	
 	public void publish(String line) throws IOException {
-		
-		size += line.length();
+        int lineLength = line.getBytes().length;
+        if (lineLength > BATCH_SIZE_LIMIT) {
+            throw new IllegalArgumentException("The input line must not be longer than " + BATCH_SIZE_LIMIT + " but was " + lineLength);
+        }
+
+        if (size + lineLength > BATCH_SIZE_LIMIT) {
+            resetAndPublish();
+        }
+		size += lineLength;
 		
 		listOfLines.add(line);
-		
-		if (	(listOfLines.size() > 100) || 
-				(size > 100000000) || 
+
+        if (	(listOfLines.size() >= 100) ||
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
-			
-			lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
-			size = 0;
-			
-			publish();
-		}		
+
+            resetAndPublish();
+        }
 	}
-	
-	
-	public void setSessionAlias(String alias) {
+
+    private void resetAndPublish() throws IOException {
+        lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
+        size = 0;
+
+        publish();
+    }
+
+    public void setSessionAlias(String alias) {
 		sessionAlias = alias;
 	}
 	
