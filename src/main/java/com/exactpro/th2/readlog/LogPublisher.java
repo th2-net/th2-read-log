@@ -126,14 +126,17 @@ public class LogPublisher implements AutoCloseable {
         }
     }
 
-	public void publish(String line) throws IOException {
+    public boolean publish(String line) throws IOException {
         int lineLength = line.getBytes().length;
         if (lineLength > characterBatchLimit) {
             throw new IllegalArgumentException("The input line must not be longer than " + characterBatchLimit + " but was " + lineLength);
         }
 
+        boolean published = false;
+
         if (size + lineLength > characterBatchLimit) {
             resetAndPublish();
+            published = true;
         }
 		size += lineLength;
 
@@ -143,7 +146,9 @@ public class LogPublisher implements AutoCloseable {
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
 
             resetAndPublish();
+            return true;
         }
+        return published;
 	}
 
     private void resetAndPublish() throws IOException {
