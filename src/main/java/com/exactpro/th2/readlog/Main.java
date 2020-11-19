@@ -16,6 +16,8 @@
 
 package com.exactpro.th2.readlog;
 
+import static com.exactpro.th2.readlog.cfg.LogReaderConfiguration.NO_LIMIT;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,13 +71,43 @@ public class Main extends Object  {
 		try {
             LogReader reader = new LogReader(logFile);
             toDispose.add(reader);
-			while (true) {
-				String line = reader.getNextLine();
+
+            int maxBatchesPerSecond = configuration.getMaxBatchesPerSecond();
+            boolean limited = maxBatchesPerSecond != NO_LIMIT;
+            if (limited) {
+                verifyPositive(maxBatchesPerSecond, "'maxBatchesPerSecond' must be a positive integer but was " + maxBatchesPerSecond);
+                logger.info("Publication is limited to {} batch(es) per second", maxBatchesPerSecond);
+            } else {
+                logger.info("Publication is unlimited");
+            }
+
+            long lastResetTime = System.currentTimeMillis();
+            int batchesPublished = 0;
+
+            while (true) {
+                if (limited) {
+                    if (batchesPublished >= maxBatchesPerSecond) {
+                        long currentTime = System.currentTimeMillis();
+                        long timeSinceLastReset = Math.abs(currentTime - lastResetTime);
+                        if (timeSinceLastReset < 1_000) {
+                            logger.trace("Suspend reading. Last time: {} mills, current time: {} mills, batches published: {}", lastResetTime, currentTime,
+                                    batchesPublished);
+                            Thread.sleep(1_000 - timeSinceLastReset);
+                            continue;
+                        }
+                        lastResetTime = currentTime;
+                        batchesPublished = 0;
+                    }
+                }
+
+                String line = reader.getNextLine();
 
 				if (line != null) {
 					List<String> parsedLines = logParser.parse(line);
 					for (String parsedLine: parsedLines) {
-						publisher.publish(parsedLine);
+                        if (publisher.publish(parsedLine)) {
+                            batchesPublished++;
+                        }
 					}
 				} else {
 					long linesCount = reader.getLineCount();
@@ -110,5 +142,12 @@ public class Main extends Object  {
             }
         });
         CommonMetrics.setLiveness(false);
+    }
+
+    private static int verifyPositive(int value, String message) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(message);
+        }
+        return value;
     }
 }

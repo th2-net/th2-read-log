@@ -15,24 +15,27 @@ Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 
 #### Configuration
 
-##### Reader confgiuration
+##### Reader configuration
 
 Example:
 ```json
 {
   "log-file": "path/to/file.log",
   "regexp": "some*regexp",
-  "regexp-groups": [0,2]
+  "regexp-groups": [0,2],
+  "max-batches-per-second": 1000
 }
 ```
 
-**logFile** - specifying path where log file is located
+**log-file** - specifying path where log file is located
 
 **regexp** - regular expression to parse string
 
-**regexpGroups** - specifying regex group to be sending
+**regexp-groups** - specifying regex group to be sending
 
-If not specified - will send all matched groups. 
+If not specified - will send all matched groups.
+
+**max-batches-per-second** - the maximum number of batches publications per second. The default value is **-1** that means not limit.
 
 ##### Pin declaration
 
