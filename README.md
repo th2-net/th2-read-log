@@ -73,6 +73,9 @@ If not specified  -  will produces two queues: logreader.first.default and datar
 
 If not specified - will send all matched groups. 
 
+**BATCH_PER_SECOND_LIMIT** - the limit for batch publications per second. NOTE: counting only batches. The number of messages inside the batch does not affect the publication rate.
+If not specified the publication will be unlimited (useful for small files).
+
 Examples
 =============
 

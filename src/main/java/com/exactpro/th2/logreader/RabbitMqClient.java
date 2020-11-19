@@ -144,15 +144,23 @@ public class RabbitMqClient {
 	
 		System.out.println("Done");
 	}
-	
-	public void publish(String line) throws IOException {
+
+    /**
+     *
+     * @param line
+     * @return {@code true} if adding new line has triggered publication. Otherwise, returns {@code false}
+     * @throws IOException
+     */
+	public boolean publish(String line) throws IOException {
         int lineLength = line.getBytes().length;
         if (lineLength > BATCH_SIZE_LIMIT) {
             throw new IllegalArgumentException("The input line must not be longer than " + BATCH_SIZE_LIMIT + " but was " + lineLength);
         }
 
+        boolean published = false;
         if (size + lineLength > BATCH_SIZE_LIMIT) {
             resetAndPublish();
+            published = true;
         }
 		size += lineLength;
 		
@@ -162,7 +170,9 @@ public class RabbitMqClient {
 				(Clock.systemDefaultZone().instant().getEpochSecond() - lastPublishTs > 2)) {
 
             resetAndPublish();
+            published = true;
         }
+        return published;
 	}
 
     private void resetAndPublish() throws IOException {
