@@ -21,8 +21,6 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
@@ -68,7 +66,7 @@ public class Main extends Object  {
         int maxBatchesPerSecond = getMaxBatchesPerSecond();
 
         try {
-            Instant lastResetTime = Instant.now();
+            long lastResetTime = System.currentTimeMillis();
             int batchesPublished = 0;
             boolean limited = maxBatchesPerSecond != NOT_LIMIT;
             if (limited) {
@@ -80,10 +78,10 @@ public class Main extends Object  {
             while (true) {
                 if (limited) {
                     if (batchesPublished >= maxBatchesPerSecond) {
-                        Instant currentTime = Instant.now();
-                        long timeSinceLastReset = Math.abs(Duration.between(lastResetTime, currentTime).toMillis());
+                        long currentTime = System.currentTimeMillis();
+                        long timeSinceLastReset = Math.abs(currentTime - lastResetTime);
                         if (timeSinceLastReset < 1_000) {
-                            logger.trace("Suspend reading. Last time: {}, current time: {}, batches published: {}", lastResetTime, currentTime,
+                            logger.trace("Suspend reading. Last time: {} mills, current time: {} mills, batches published: {}", lastResetTime, currentTime,
                                     batchesPublished);
                             Thread.sleep(1_000 - timeSinceLastReset);
                             continue;
