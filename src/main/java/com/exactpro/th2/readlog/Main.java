@@ -16,7 +16,7 @@
 
 package com.exactpro.th2.readlog;
 
-import static com.exactpro.th2.readlog.cfg.LogReaderConfiguration.NOT_LIMIT;
+import static com.exactpro.th2.readlog.cfg.LogReaderConfiguration.NO_LIMIT;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +73,7 @@ public class Main extends Object  {
             toDispose.add(reader);
 
             int maxBatchesPerSecond = configuration.getMaxBatchesPerSecond();
-            boolean limited = maxBatchesPerSecond != NOT_LIMIT;
+            boolean limited = maxBatchesPerSecond != NO_LIMIT;
             if (limited) {
                 verifyPositive(maxBatchesPerSecond, "'maxBatchesPerSecond' must be a positive integer but was " + maxBatchesPerSecond);
                 logger.info("Publication is limited to {} batch(es) per second", maxBatchesPerSecond);

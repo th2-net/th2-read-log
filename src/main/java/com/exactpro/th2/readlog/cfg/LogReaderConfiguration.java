@@ -22,7 +22,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class LogReaderConfiguration {
-    public static final int NOT_LIMIT = -1;
+    public static final int NO_LIMIT = -1;
 
     @JsonProperty(value = "log-file", required = true)
     private File logFile;
@@ -34,7 +34,7 @@ public class LogReaderConfiguration {
     private List<Integer> regexpGroups;
 
     @JsonProperty("max-batches-per-second")
-    private int maxBatchesPerSecond = NOT_LIMIT;
+    private int maxBatchesPerSecond = NO_LIMIT;
 
     public File getLogFile() {
         return logFile;
