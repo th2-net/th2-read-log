@@ -79,15 +79,15 @@ public class Main extends Object  {
 
             while (true) {
                 if (limited) {
-                    Instant currentTime = Instant.now();
-                    long timeSinceLastReset = Math.abs(Duration.between(lastResetTime, currentTime).toMillis());
-                    if (timeSinceLastReset < 1_000) {
-                        if (batchesPublished >= maxBatchesPerSecond) {
-                            logger.trace("Suspend reading. Last time: {}, current time: {}, batches published: {}", lastResetTime, currentTime, batchesPublished);
+                    if (batchesPublished >= maxBatchesPerSecond) {
+                        Instant currentTime = Instant.now();
+                        long timeSinceLastReset = Math.abs(Duration.between(lastResetTime, currentTime).toMillis());
+                        if (timeSinceLastReset < 1_000) {
+                            logger.trace("Suspend reading. Last time: {}, current time: {}, batches published: {}", lastResetTime, currentTime,
+                                    batchesPublished);
                             Thread.sleep(1_000 - timeSinceLastReset);
                             continue;
                         }
-                    } else {
                         lastResetTime = currentTime;
                         batchesPublished = 0;
                     }
