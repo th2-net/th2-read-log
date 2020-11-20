@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,8 +54,8 @@ public class LogPublisher implements AutoCloseable {
     private final MessageRouter<RawMessageBatch> batchMessageRouter;
     private final String sessionAlias;
 
-	private long index = 0;
-	private final List<String> listOfLines = new ArrayList<String>();
+	private long sequence = firstSequence();
+	private final List<String> listOfLines = new ArrayList<>();
 	private long size = 0;
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
 
@@ -74,6 +75,11 @@ public class LogPublisher implements AutoCloseable {
             throw new IllegalArgumentException("'charactersLimit' must be a positive integer");
         }
         characterBatchLimit = charactersLimit;
+    }
+
+    private static long firstSequence() {
+        Instant now = Instant.now();
+        return TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
     }
 
 	private void publish() throws IOException {
@@ -105,7 +111,7 @@ public class LogPublisher implements AutoCloseable {
 			connId.setSessionAlias(sessionAlias);
 
 			messageId.setConnectionId(connId);
-			messageId.setSequence(++index);
+			messageId.setSequence(++sequence);
 			messageId.setDirection(Direction.FIRST);
 
 			metaData.setId(messageId);
