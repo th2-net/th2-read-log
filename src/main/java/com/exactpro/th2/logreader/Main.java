@@ -112,6 +112,7 @@ public class Main extends Object  {
 						reader.close();
 						reader.open();						
 					} else {
+                        client.flush();
 						Thread.sleep(5000);
 					}
 				}

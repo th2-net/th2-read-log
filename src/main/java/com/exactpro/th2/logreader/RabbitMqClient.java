@@ -182,6 +182,13 @@ public class RabbitMqClient {
         publish();
     }
 
+    public void flush() throws IOException {
+        if (listOfLines.isEmpty()) {
+            return;
+        }
+        resetAndPublish();
+    }
+
     public void setSessionAlias(String alias) {
 		sessionAlias = alias;
 	}
