@@ -158,6 +158,13 @@ public class LogPublisher implements AutoCloseable {
         publish();
     }
 
+    public void flush() throws IOException {
+        if (listOfLines.isEmpty()) {
+            return;
+        }
+        resetAndPublish();
+    }
+
     @Override
     public void close() throws IOException {
         if (!listOfLines.isEmpty()) {
