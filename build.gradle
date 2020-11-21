@@ -19,6 +19,7 @@ plugins {
     id 'java-library'
     id 'application'
     id 'com.palantir.docker' version '0.25.0'
+    id "com.jfrog.bintray" version '1.8.5'
 }
 
 group 'com.exactpro.th2'
@@ -26,17 +27,10 @@ version release_version
 
 repositories {
     mavenCentral()
-
     maven {
-        name 'Artifactory'
-        url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
+        name 'Bintray'
+        url 'https://dl.bintray.com/exactpro/th2'
     }
-
-    maven {
-        name 'Artifactory release'
-        url 'http://artifactory5.exp.exactpro.com/artifactory/libs-release'
-    }
-
     mavenLocal()
 
     configurations.all {
@@ -46,7 +40,7 @@ repositories {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:2.1.+')
+    api platform('com.exactpro.th2:bom:2.3.+')
 
     implementation 'com.exactpro.th2:common'
     implementation 'com.exactpro.th2:grpc-common'
