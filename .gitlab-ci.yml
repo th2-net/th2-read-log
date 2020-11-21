@@ -1,8 +1,5 @@
 variables:
   APP_NAME: "th2-read-log"
-  MAJOR_VERSION: "2"
-  MINOR_VERSION: "2"
-  MAINTENANCE_VERSION: "2"
   INSPECTION_ENABLED: 'false'
   TEST_ENABLED: 'false'
   ARTIFACTORY_PUBLISH: 'false'
