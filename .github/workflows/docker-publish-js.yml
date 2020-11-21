@@ -21,11 +21,11 @@ jobs:
         password: ${{ secrets.CR_PAT }}
     - run: echo "::set-output name=REPOSITORY_NAME::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
       id: meta
-    - name: Get package version
-      id: version
-      uses: notiz-dev/github-action-json-property@release
-      with: 
-        path: gradle.properties
+    - name: Read version from gradle.properties
+      id: read_property
+      uses: christian-draeger/read-properties@1.0.1
+      with:
+        path: ./gradle.properties
         property: release_version
     - name: Build and push
       id: docker_build
