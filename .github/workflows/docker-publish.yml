@@ -4,9 +4,8 @@ on:
   push:
     branches:
     - master
-#     paths:
-#    - gradle.properties
-#    - package_info.json  
+    paths:
+    - gradle.properties
 
 jobs:
   build:
