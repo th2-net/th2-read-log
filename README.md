@@ -12,44 +12,6 @@ Log reader read text log files, line by line and applying regex expression to ea
 Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 
 ### Quick start
-General view of the component will look like this:
-```yaml
-apiVersion: th2.exactpro.com/v1
-kind: Th2Generic
-metadata:
-  name: read-log
-spec:
-  image-name: ghcr.io/th2-net/th2-read-log
-  image-version: <image version>
-  type: th2-read
-  custom-config:
-    log-file: "<path in Kubernetes pod>"
-    regexp: "<java regexp>"
-    regexp-groups: [<regexp-groups>]
-  pins:
-    - name: read_log_out
-      connection-type: mq
-      attributes: ['raw', 'publish', 'store']
-  extended-settings:
-# ???   chart-cfg:
-# ???     ref: schema-stable
-# ???     path: custom-comp
-# ???    service:
-# ???      enabled: false
-    envVariables:
-      JAVA_TOOL_OPTIONS: "-XX:+ExitOnOutOfMemoryError"
-    mounting:
-      - path: "<distination path in Kubernetes pod>"
-        pvcName: <Kubernetes persistent volume component name >
-    resources:
-	  # Min system requirments ...
-      limits:
-        memory: 200Mi
-        cpu: 200m
-      requests:
-        memory: 100Mi
-        cpu: 50m
-```
 
 #### Configuration
 
@@ -90,6 +52,45 @@ spec:
     - name: out_log
       connection-type: mq
       attributes: ['raw', 'publish', 'store']
+```
+
+General view of the component will look like this:
+```yaml
+apiVersion: th2.exactpro.com/v1
+kind: Th2Generic
+metadata:
+  name: read-log
+spec:
+  image-name: ghcr.io/th2-net/th2-read-log
+  image-version: <image version>
+  type: th2-read
+  custom-config:
+    log-file: "<path in Kubernetes pod>"
+    regexp: "<java regexp>"
+    regexp-groups: [<regexp-groups>]
+  pins:
+    - name: read_log_out
+      connection-type: mq
+      attributes: ['raw', 'publish', 'store']
+  extended-settings:
+# ???   chart-cfg:
+# ???     ref: schema-stable
+# ???     path: custom-comp
+# ???    service:
+# ???      enabled: false
+    envVariables:
+      JAVA_TOOL_OPTIONS: "-XX:+ExitOnOutOfMemoryError"
+    mounting:
+      - path: "<distination path in Kubernetes pod>"
+        pvcName: <Kubernetes persistent volume component name >
+    resources:
+	  # Min system requirments ...
+      limits:
+        memory: 200Mi
+        cpu: 200m
+      requests:
+        memory: 100Mi
+        cpu: 50m
 ```
 
 ### Examples
