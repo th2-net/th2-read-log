@@ -16,6 +16,8 @@
 
 package com.exactpro.th2.readlog.impl;
 
+import static java.util.Comparator.comparing;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
@@ -310,10 +312,11 @@ public class DirectoryWatchLogReader implements ILogReader {
             return null;
         }
         Instant lastProcessedFileCreationTime = lastProcessedFile == null ? null : lastProcessedFile.getLastModifiedTime();
+        Comparator<FileInfo> nameComparator = comparing(it -> it.getPath().getFileName());
         return Arrays.stream(files)
                 .map(FileInfo::new)
                 .filter(it -> lastProcessedFileCreationTime == null || it.getLastModifiedTime().compareTo(lastProcessedFileCreationTime) >= 0)
-                .sorted(Comparator.comparing(FileInfo::getLastModifiedTime))
+                .sorted(comparing(FileInfo::getLastModifiedTime).thenComparing(nameComparator))
                 .collect(Collectors.toCollection(LinkedList::new));
     }
 
