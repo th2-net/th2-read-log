@@ -37,6 +37,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -59,6 +60,7 @@ class TestDirectoryWatchLogReader {
     @AfterEach
     void tearDown() throws IOException {
         FileUtils.deleteDirectory(logDirectory);
+        LOGGER.info("Directory {} deleted", logDirectory);
     }
 
     @Test
@@ -151,6 +153,56 @@ class TestDirectoryWatchLogReader {
             appendToFile("test_file2", List.of("line D1"));
 
             assertEquals(List.of("line C", "line A1", "line B1", "line C1"), readAllLines(reader));
+
+            assertCanRead(reader);
+
+            assertEquals(List.of("line D1"), readAllLines(reader));
+
+            assertCannotRead(reader);
+        }
+    }
+
+    @Test
+    void readsFromRecentlyCreatedAndUpdatedFileAndUpdatedCurrentFile() throws Exception {
+        createFile("test_file1", List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+
+            appendToFile("test_file1", List.of("new line"));
+            createFile("test_file2", List.of("line A1", "line B1", "line C1"));
+            assertCanRead(reader); // because a new line added to the file 'test_file1'
+            appendToFile("test_file2", List.of("line D1"));
+
+            assertEquals(List.of("line C", "new line", "line A1", "line B1", "line C1"), readAllLines(reader));
+
+            assertCanRead(reader);
+
+            assertEquals(List.of("line D1"), readAllLines(reader));
+
+            assertCannotRead(reader);
+        }
+    }
+
+    @Test
+    @DisplayName("reads normal in case the current file's last line is modified and new file created after that")
+    void readsFromRecentlyCreatedAndUpdatedFileAndUpdatedLastCurrentFile() throws Exception {
+        createFileWithoutNewLineAtTheEnd("test_file1", List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+
+            appendToFile("test_file1", List.of(" and new line"));
+            createFile("test_file2", List.of("line A1", "line B1", "line C1"));
+            assertCannotRead(reader); // because the last line were modified in 'test_file1'
+            appendToFile("test_file2", List.of("line D1"));
+
+            assertCanRead(reader);
+            assertEquals(List.of("line C and new line", "line A1", "line B1", "line C1"), readAllLines(reader));
 
             assertCanRead(reader);
 

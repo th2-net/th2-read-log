@@ -108,10 +108,11 @@ public class Main extends Object  {
                         }
 					}
 				} else {
+                    // wait for file update
+                    Thread.sleep(5000);
 					if (!reader.refresh()) {
+					    // nothing to read. Need to flush all data that is not published yet
 					    publisher.flush();
-					    // wait for file update
-						Thread.sleep(5000);
 					}
 				}
 			}

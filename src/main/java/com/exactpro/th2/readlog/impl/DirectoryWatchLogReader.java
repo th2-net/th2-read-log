@@ -233,7 +233,6 @@ public class DirectoryWatchLogReader implements ILogReader {
             if (actualLength < position) {
                 throw new IllegalArgumentException("The actual file length " + actualLength + " is lower than requested position " + position);
             }
-            fileReader = createReader(lastProcessedFile);
             fileReader.seek(position);
         }
     }
