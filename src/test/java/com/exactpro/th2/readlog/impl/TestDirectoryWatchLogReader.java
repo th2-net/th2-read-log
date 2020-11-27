@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.exactpro.th2.readlog.ILogReader;
 
-@TestInstance(Lifecycle.PER_CLASS)
+@TestInstance(Lifecycle.PER_METHOD)
 class TestDirectoryWatchLogReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestDirectoryWatchLogReader.class);
     private File logDirectory;
@@ -279,7 +279,6 @@ class TestDirectoryWatchLogReader {
     }
 
     private void writeToFile(String name, boolean append, Collection<String> content, boolean addNewLineToTheEnd) throws Exception {
-//        Thread.sleep(DEFAULT_TIMEOUT_BEFORE_WRITING); // because other wise
         try (BufferedWriter out = new BufferedWriter(new FileWriter(new File(logDirectory, name), append))) {
             Iterator<String> iterator = content.iterator();
             while (iterator.hasNext()) {
