@@ -2,10 +2,6 @@
 
 ## Document Information
 
-### Table of contents
-
-{table_contents}
-
 ### Introduction
 
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
@@ -55,7 +51,10 @@ spec:
 
 ##### Reader configuration
 
-Example:
+The read-log component can work in two modes.
+
+###### First mode
+The first one is reading the certain file and monitoring if it is updated. It has the following configuration:
 ```json
 {
   "log-file": "path/to/file.log",
@@ -74,6 +73,28 @@ Example:
 If not specified - will send all matched groups.
 
 **max-batches-per-second** - the maximum number of batches publications per second. The default value is **-1** that means not limit.
+
+###### Second mode
+The second mode allows read-log to monitor the specified directory and read all files ordered by modification time.
+It can be used for reading logs with rotation.
+It has the following configuration (some parameters are the same as for the previous configuration):
+ ```json
+ {
+   "session-alias": "some_session",
+   "log-directory": "path/to/logs",
+   "file-filter-regexp": "regex_for_filtering.*\\.log",
+   "regexp": "some*regexp",
+   "regexp-groups": [0,2],
+   "max-batches-per-second": 1000
+ }
+ ```
+
+**session-alias** - the session alias that will be set to the raw data produced by the read-log;
+
+**log-directory** - a path to directory with log files;
+
+**file-filter** - a regular expression for filtering files to process.
+
 
 ##### Pin declaration
 
