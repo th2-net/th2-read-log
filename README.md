@@ -2,10 +2,6 @@
 
 ## Document Information
 
-### Table of contents
-
-{table_contents}
-
 ### Introduction
 
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
@@ -42,7 +38,7 @@ spec:
       - path: "<distination path in Kubernetes pod>"
         pvcName: <Kubernetes persistent volume component name >
     resources:
-	  # Min system requirments ...
+      # Min system requirments ...
       limits:
         memory: 200Mi
         cpu: 200m
