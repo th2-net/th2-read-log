@@ -20,12 +20,27 @@ import java.io.File;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 public class LogReaderConfiguration {
     public static final int NO_LIMIT = -1;
 
-    @JsonProperty(value = "log-file", required = true)
+    /**
+     * @deprecated use {@link #logDirectory} and {@link #fileFilterRegexp} instead
+     */
+    @JsonProperty("log-file")
+    @Deprecated(forRemoval = true)
     private File logFile;
+
+    @JsonProperty("session-alias")
+    private String sessionAlias;
+
+    @JsonProperty("log-directory")
+    private File logDirectory;
+
+    @JsonProperty("file-filter-regexp")
+    @JsonPropertyDescription("The regexp which will be used to filter files to process from specified directory")
+    private String fileFilterRegexp;
 
     @JsonProperty(required = true)
     private String regexp;
@@ -66,5 +81,29 @@ public class LogReaderConfiguration {
 
     public void setMaxBatchesPerSecond(int maxBatchesPerSecond) {
         this.maxBatchesPerSecond = maxBatchesPerSecond;
+    }
+
+    public String getSessionAlias() {
+        return sessionAlias;
+    }
+
+    public void setSessionAlias(String sessionAlias) {
+        this.sessionAlias = sessionAlias;
+    }
+
+    public File getLogDirectory() {
+        return logDirectory;
+    }
+
+    public void setLogDirectory(File logDirectory) {
+        this.logDirectory = logDirectory;
+    }
+
+    public String getFileFilterRegexp() {
+        return fileFilterRegexp;
+    }
+
+    public void setFileFilterRegexp(String fileFilterRegexp) {
+        this.fileFilterRegexp = fileFilterRegexp;
     }
 }

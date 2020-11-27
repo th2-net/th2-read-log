@@ -54,13 +54,10 @@ dependencies {
 
     implementation 'net.logstash.logback:logstash-logback-encoder:5.2'
 
-    implementation 'ch.qos.logback:logback-classic:1.2.3'
-    implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
-    implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
-
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
-    implementation 'org.slf4j:slf4j-api'
+    implementation "org.slf4j:slf4j-log4j12"
+    implementation "org.slf4j:slf4j-api"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
     testImplementation 'org.mockito:mockito-core:3.6.0'

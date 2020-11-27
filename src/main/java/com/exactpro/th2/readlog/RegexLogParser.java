@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import net.logstash.logback.argument.StructuredArguments;
 
 public class RegexLogParser {
-	private static final Logger logger = LoggerFactory.getLogger(LogReader.class);
+	private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
     private final Pattern pattern;
 	private final List<Integer> regexGroups;
 

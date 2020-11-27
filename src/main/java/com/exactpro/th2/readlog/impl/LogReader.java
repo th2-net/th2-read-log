@@ -14,36 +14,39 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.readlog;
+package com.exactpro.th2.readlog.impl;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.exactpro.th2.readlog.ILogReader;
+
 import net.logstash.logback.argument.StructuredArguments;
 
-public class LogReader implements AutoCloseable {
-	private final File file;
-	private BufferedReader reader;
-	private Logger logger = LoggerFactory.getLogger(LogReader.class);
+public class LogReader implements ILogReader {
+    private static final Logger logger = LoggerFactory.getLogger(LogReader.class);
+    private final File file;
+    private BufferedReader reader;
 
 	private boolean closeState;
 	private long processedLinesCount;
 
-	public LogReader(File file) throws FileNotFoundException {
+	public LogReader(File file) throws IOException {
 		this.file = Objects.requireNonNull(file, "'File' parameter");
 		open();
 	}
 
-    public void open() throws FileNotFoundException {
+    public void open() throws IOException {
         closeState = false;
         reader = new BufferedReader(new FileReader(file));
         logger.info("Open log file {}", StructuredArguments.value("file", file));
@@ -70,7 +73,9 @@ public class LogReader implements AutoCloseable {
 		return processedLinesCount;
 	}
 
-	public String getNextLine() throws IOException {
+	@Override
+    @Nullable
+    public String getNextLine() throws IOException {
 		String result = reader.readLine();
 		logger.trace("RawLogLine {}",StructuredArguments.value("RawLogLine",result));
 		if (result != null) {
@@ -79,8 +84,24 @@ public class LogReader implements AutoCloseable {
 		return result;
 	}
 
+    @Override
+    public boolean refresh() throws IOException {
+        long linesCount = getLineCount();
+        long processedLinesCount = getProcessedLinesCount();
 
-	public boolean isClosed() {
+        if (linesCount == processedLinesCount) {
+            return false;
+        }
+
+        close();
+        open();
+        if (linesCount > processedLinesCount) {
+            skip(processedLinesCount);
+        }
+        return true;
+    }
+
+    public boolean isClosed() {
 		return closeState;
 	}
 
