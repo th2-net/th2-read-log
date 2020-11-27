@@ -55,13 +55,13 @@ public class DirectoryWatchLogReader implements ILogReader {
     private RandomAccessFile fileReader;
 
     public DirectoryWatchLogReader(File logDirectory, String fileFilterRegexp) throws FileNotFoundException {
+        this.logDirectory = Objects.requireNonNull(logDirectory, "'Log directory' parameter");
         if (!logDirectory.exists()) {
             throw new FileNotFoundException("Cannot find directory: " + logDirectory);
         }
         if (logDirectory.isFile()) {
             throw new IllegalArgumentException("Expects that the " + logDirectory + " is a directory but it is a file");
         }
-        this.logDirectory = Objects.requireNonNull(logDirectory, "'Log directory' parameter");
         Pattern fileFilterPattern = Pattern.compile(Objects.requireNonNull(fileFilterRegexp, "'File filter regexp' parameter"));
         filenameFilter = new RegexpFilenameFilter(fileFilterPattern);
         Queue<FileInfo> files = findFiles();
@@ -107,7 +107,7 @@ public class DirectoryWatchLogReader implements ILogReader {
         LOGGER.debug("Filtered {} new or updated files. {}", filtered.size(), filtered);
         FileInfo firstFiltered = filtered.peek(); // might be the files with the same modification time or that is newer than the current one
         boolean differentFile = true;
-        if (lastProcessedFile != null && lastProcessedFile.equals(firstFiltered)) {
+        if (lastProcessedFile != null && equalsFileInfo(lastProcessedFile, firstFiltered)) {
             differentFile = false;
             if (isFileModified(lastProcessedFile, firstFiltered)) {
                 long lastBeforePosition = lastProcessedFile.getPositionBeforeLastString();
@@ -166,7 +166,7 @@ public class DirectoryWatchLogReader implements ILogReader {
         FileInfo prev = iterator.next();
         while (iterator.hasNext()) {
             FileInfo curr = iterator.next();
-            if (!isSameModificationTime(lastProcessedFile, curr) && !lastProcessedFile.equals(curr)) {
+            if (!isSameModificationTime(lastProcessedFile, curr) && !equalsFileInfo(lastProcessedFile, curr)) {
                 LOGGER.trace("Found first newer file. Add the previous one with same modification time {} and the new one {}", prev, curr);
                 filtered.add(prev);
                 filtered.add(curr);
@@ -238,8 +238,11 @@ public class DirectoryWatchLogReader implements ILogReader {
     }
 
     /**
-     * Keeps the last string from the file and returns null instead
+     * Keeps the last string from the file if we have not checked if its modified yet and returns null instead.
      *
+     * We need to make sure that last line in the file is completed.
+     * We should not read the line if it is changing.
+     * That is why we need to hold the last line.
      * @return
      * @throws IOException
      */
@@ -357,23 +360,6 @@ public class DirectoryWatchLogReader implements ILogReader {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-
-            FileInfo fileInfo = (FileInfo)o;
-
-            return Objects.equals(path, fileInfo.path);
-        }
-
-        @Override
-        public int hashCode() {
-            return path == null ? 0 : path.hashCode();
-        }
-
-        @Override
         public String toString() {
             return new ToStringBuilder(this, ToStringStyle.NO_CLASS_NAME_STYLE)
                     .append("path", path)
@@ -386,8 +372,13 @@ public class DirectoryWatchLogReader implements ILogReader {
             try {
                 return Files.readAttributes(path, BasicFileAttributes.class);
             } catch (IOException e) {
-                throw new RuntimeException("Cannot extract basic attributes", e);
+                throw new RuntimeException("Cannot extract basic attributes for file " + path, e);
             }
         }
+    }
+
+    private static boolean equalsFileInfo(FileInfo left, FileInfo right) {
+        return left == right
+                || (left != null && right != null && Objects.equals(left.getPath(), right.getPath()));
     }
 }

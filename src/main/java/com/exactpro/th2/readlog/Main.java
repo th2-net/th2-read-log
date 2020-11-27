@@ -52,7 +52,8 @@ public class Main extends Object  {
 
         LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class);
 
-        LOGGER.info("Deprecated parameter 'logFile'={}", configuration.getLogFile());
+        LOGGER.warn("Deprecated parameter 'log-file'={}", configuration.getLogFile());
+        LOGGER.warn("Please use the second mode with 'session-alias', 'log-directory' and 'file-filter-regexp' parameters");
         File logFile = configuration.getLogFile();
         String sessionAlias = logFile == null
                 ? configuration.getSessionAlias()
