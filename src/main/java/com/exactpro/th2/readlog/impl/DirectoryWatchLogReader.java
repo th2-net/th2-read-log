@@ -69,6 +69,7 @@ public class DirectoryWatchLogReader implements ILogReader {
         addFilesToQueue(files);
     }
 
+    // FIXME: must refresh the state if called second time after returning null. Or should throw an exception in that case
     @Override
     @Nullable
     public String getNextLine() throws IOException {
@@ -103,11 +104,11 @@ public class DirectoryWatchLogReader implements ILogReader {
             LOGGER.debug("No new files found in the directory {}", logDirectory);
             return false;
         }
-        Queue<FileInfo> filtered = filterLastWithSameTimeOrNewer(lastProcessedFile, files);
+        Queue<FileInfo> filtered = filterCurrentAndNewer(lastProcessedFile, files);
         LOGGER.debug("Filtered {} new or updated files. {}", filtered.size(), filtered);
         FileInfo firstFiltered = filtered.peek(); // might be the files with the same modification time or that is newer than the current one
         boolean differentFile = true;
-        if (lastProcessedFile != null && equalsFileInfo(lastProcessedFile, firstFiltered)) {
+        if (lastProcessedFile != null && sameFile(lastProcessedFile, firstFiltered)) {
             differentFile = false;
             if (isFileModified(lastProcessedFile, firstFiltered)) {
                 long lastBeforePosition = lastProcessedFile.getPositionBeforeLastString();
@@ -147,7 +148,15 @@ public class DirectoryWatchLogReader implements ILogReader {
         return canReturnLastString || (!filtered.isEmpty() && differentFile);
     }
 
-    private Queue<FileInfo> filterLastWithSameTimeOrNewer(@Nullable FileInfo lastProcessedFile, Queue<FileInfo> files) {
+    /**
+     * Returns all files after the @lastProcessedFile if the @files contain it including the @lastProcessedFile.
+     *
+     * If @lastProcessedFile is not in the @files returns the last one that has the same modification time and all files after that one.
+     * @param lastProcessedFile current file
+     * @param files collection of files with same last modification time or newer
+     * @return
+     */
+    static Queue<FileInfo> filterCurrentAndNewer(@Nullable FileInfo lastProcessedFile, Queue<FileInfo> files) {
         if (files.isEmpty()) {
             return files;
         }
@@ -161,13 +170,22 @@ public class DirectoryWatchLogReader implements ILogReader {
         if (!sameCreationTime) {
             return files;
         }
-        Queue<FileInfo> filtered = new LinkedList<>();
         Iterator<FileInfo> iterator = files.iterator();
         FileInfo prev = iterator.next();
+        Queue<FileInfo> filtered = new LinkedList<>();
         while (iterator.hasNext()) {
+            if (lastProcessedFile.equals(prev)) {
+                filtered.add(prev);
+                break;
+            }
+            boolean prevIsSameUpdatedFile = isSameUpdatedFile(lastProcessedFile, prev);
+            LOGGER.trace("The prev file {}; isPrevIsSameUpdatedFile: {}", prev, prevIsSameUpdatedFile);
+
             FileInfo curr = iterator.next();
-            if (!isSameModificationTime(lastProcessedFile, curr) && !equalsFileInfo(lastProcessedFile, curr)) {
-                LOGGER.trace("Found first newer file. Add the previous one with same modification time {} and the new one {}", prev, curr);
+            boolean differentNewerFile = isDifferentNewerFile(lastProcessedFile, curr);
+            LOGGER.trace("The current file {}; isDifferentNewerFile: {}", curr, differentNewerFile);
+            if (differentNewerFile || prevIsSameUpdatedFile) {
+                LOGGER.trace("Found first change. Add the previous one with same modification time {} and the new one {}", prev, curr);
                 filtered.add(prev);
                 filtered.add(curr);
                 break;
@@ -186,7 +204,15 @@ public class DirectoryWatchLogReader implements ILogReader {
         return filtered;
     }
 
-    private boolean isSameModificationTime(FileInfo current, FileInfo other) {
+    private static boolean isSameUpdatedFile(FileInfo lastProcessedFile, FileInfo prev) {
+        return sameFile(lastProcessedFile, prev) && isDifferentSize(lastProcessedFile, prev);
+    }
+
+    private static boolean isDifferentNewerFile(FileInfo lastProcessedFile, FileInfo curr) {
+        return !isSameModificationTime(lastProcessedFile, curr) && !sameFile(lastProcessedFile, curr);
+    }
+
+    private static boolean isSameModificationTime(FileInfo current, FileInfo other) {
         LOGGER.trace("Compare {} and {}", current, other);
         return current.getLastModifiedTime().compareTo(other.getLastModifiedTime()) == 0;
     }
@@ -202,8 +228,8 @@ public class DirectoryWatchLogReader implements ILogReader {
         return !isSameModificationTime(previousState, currentState) || isDifferentSize(previousState, currentState);
     }
 
-    private boolean isDifferentSize(FileInfo previousState, FileInfo currentState) {
-        return previousState.getAttributes().size() != currentState.getAttributes().size();
+    private static boolean isDifferentSize(FileInfo previousState, FileInfo currentState) {
+        return previousState.getSize() != currentState.getSize();
     }
 
     private void initReaderForNextFile(FileInfo nextFile) throws IOException {
@@ -311,25 +337,32 @@ public class DirectoryWatchLogReader implements ILogReader {
         }
     }
 
-    private static class FileInfo {
+    static class FileInfo {
         private final Path path;
-        private final BasicFileAttributes attributes;
         private final Instant lastModifiedTime;
+        private final long size;
         private long positionBefore = Long.MIN_VALUE;
         private long positionAfter = Long.MIN_VALUE;
 
         private FileInfo(File file) {
             this.path = file.toPath();
-            this.attributes = extractAttributes(path);
+            BasicFileAttributes attributes = extractAttributes(path);
             lastModifiedTime = attributes.lastModifiedTime().toInstant();
+            size = attributes.size();
+        }
+
+        FileInfo(Path path, Instant lastModifiedTime, long size) {
+            this.path = path;
+            this.lastModifiedTime = lastModifiedTime;
+            this.size = size;
         }
 
         public Path getPath() {
             return path;
         }
 
-        public BasicFileAttributes getAttributes() {
-            return attributes;
+        public long getSize() {
+            return size;
         }
 
         public Instant getLastModifiedTime() {
@@ -360,11 +393,35 @@ public class DirectoryWatchLogReader implements ILogReader {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+
+            FileInfo fileInfo = (FileInfo)o;
+
+            if (size != fileInfo.size)
+                return false;
+            if (!path.equals(fileInfo.path))
+                return false;
+            return lastModifiedTime.equals(fileInfo.lastModifiedTime);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = path.hashCode();
+            result = 31 * result + lastModifiedTime.hashCode();
+            result = 31 * result + (int)(size ^ (size >>> 32));
+            return result;
+        }
+
+        @Override
         public String toString() {
             return new ToStringBuilder(this, ToStringStyle.NO_CLASS_NAME_STYLE)
                     .append("path", path)
                     .append("lastModifiedTime", lastModifiedTime)
-                    .append("size", attributes.size())
+                    .append("size", size)
                     .toString();
         }
 
@@ -377,7 +434,7 @@ public class DirectoryWatchLogReader implements ILogReader {
         }
     }
 
-    private static boolean equalsFileInfo(FileInfo left, FileInfo right) {
+    private static boolean sameFile(FileInfo left, FileInfo right) {
         return left == right
                 || (left != null && right != null && Objects.equals(left.getPath(), right.getPath()));
     }
