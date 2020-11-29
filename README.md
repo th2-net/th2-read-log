@@ -27,11 +27,8 @@ spec:
       connection-type: mq
       attributes: ['raw', 'publish', 'store']
   extended-settings:
-# ???   chart-cfg:
-# ???     ref: schema-stable
-# ???     path: custom-comp
-# ???    service:
-# ???      enabled: false
+    service:
+      enabled: false
     envVariables:
       JAVA_TOOL_OPTIONS: "-XX:+ExitOnOutOfMemoryError"
     mounting:
