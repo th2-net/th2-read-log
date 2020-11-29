@@ -11,7 +11,7 @@ Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 General view of the component will look like this:
 ```yaml
 apiVersion: th2.exactpro.com/v1
-kind: Th2Generic
+kind: Th2Box
 metadata:
   name: read-log
 spec:
@@ -75,7 +75,7 @@ The log reader requires a single pin with _publish_ and _raw_ attributes. The da
 Example:
 ```yaml
 apiVersion: th2.exactpro.com/v1
-kind: Th2GenericBox
+kind: Th2Box
 metadata:
   name: log-reader
 spec:
