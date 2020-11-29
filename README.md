@@ -11,7 +11,7 @@ Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
 General view of the component will look like this:
 ```yaml
 apiVersion: th2.exactpro.com/v1
-kind: Th2Generic
+kind: Th2Box
 metadata:
   name: read-log
 spec:
@@ -27,18 +27,15 @@ spec:
       connection-type: mq
       attributes: ['raw', 'publish', 'store']
   extended-settings:
-# ???   chart-cfg:
-# ???     ref: schema-stable
-# ???     path: custom-comp
-# ???    service:
-# ???      enabled: false
+    service:
+      enabled: false
     envVariables:
       JAVA_TOOL_OPTIONS: "-XX:+ExitOnOutOfMemoryError"
     mounting:
       - path: "<distination path in Kubernetes pod>"
         pvcName: <Kubernetes persistent volume component name >
     resources:
-	  # Min system requirments ...
+      # Min system requirments ...
       limits:
         memory: 200Mi
         cpu: 200m
@@ -103,7 +100,7 @@ The log reader requires a single pin with _publish_ and _raw_ attributes. The da
 Example:
 ```yaml
 apiVersion: th2.exactpro.com/v1
-kind: Th2GenericBox
+kind: Th2Box
 metadata:
   name: log-reader
 spec:
