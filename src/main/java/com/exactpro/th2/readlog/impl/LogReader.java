@@ -31,8 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import com.exactpro.th2.readlog.ILogReader;
 
-import net.logstash.logback.argument.StructuredArguments;
-
 public class LogReader implements ILogReader {
     private static final Logger logger = LoggerFactory.getLogger(LogReader.class);
     private final File file;
@@ -49,7 +47,7 @@ public class LogReader implements ILogReader {
     public void open() throws IOException {
         closeState = false;
         reader = new BufferedReader(new FileReader(file));
-        logger.info("Open log file {}", StructuredArguments.value("file", file));
+        logger.info("Open log file {}", file);
         processedLinesCount = 0;
     }
 
@@ -61,7 +59,7 @@ public class LogReader implements ILogReader {
 	}
 
 	public void skip(long lineNumber) throws IOException {
-		logger.trace("Skipping {}",StructuredArguments.value("LinesToSkip",lineNumber));
+		logger.trace("Skipping {}",lineNumber);
 
 		for (long i=0; i<lineNumber; ++i) {
 			reader.readLine();
@@ -77,7 +75,7 @@ public class LogReader implements ILogReader {
     @Nullable
     public String getNextLine() throws IOException {
 		String result = reader.readLine();
-		logger.trace("RawLogLine {}",StructuredArguments.value("RawLogLine",result));
+		logger.trace("RawLogLine {}",result);
 		if (result != null) {
 			++processedLinesCount;
 		}
@@ -111,6 +109,6 @@ public class LogReader implements ILogReader {
 			reader.close();
 			closeState=true;
 		}
-		logger.info("Close log file {}", StructuredArguments.value("fileName", file));
+		logger.info("Close log file {}", file);
 	}
 }

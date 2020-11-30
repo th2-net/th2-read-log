@@ -25,8 +25,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.logstash.logback.argument.StructuredArguments;
-
 public class RegexLogParser {
 	private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
     private final Pattern pattern;
@@ -51,7 +49,7 @@ public class RegexLogParser {
 				for (int i = 0; i <= matcher.groupCount(); ++i) {
 					String res = matcher.group(i); 
 					result.add(res);
-					logger.trace("ParsedLogLine: {}",StructuredArguments.value("ParsedLogLine", res));
+					logger.trace("ParsedLogLine: {}",res);
 				}
 			}
 		} else {
@@ -59,7 +57,7 @@ public class RegexLogParser {
 				for (int index : regexGroups) {
 					String res = matcher.group(index);
 					result.add(res);
-					logger.trace("ParsedLogLine: {}",StructuredArguments.value("ParsedLogLine", res));
+					logger.trace("ParsedLogLine: {}",res);
 				}
 			}
 
