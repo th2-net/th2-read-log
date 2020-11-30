@@ -107,12 +107,17 @@ public class DirectoryWatchLogReader implements ILogReader {
             return false;
         }
         Queue<FileInfo> filtered = filterCurrentAndNewer(lastProcessedFile, files);
-        LOGGER.debug("Filtered {} new or updated files. {}", filtered.size(), filtered);
+        LOGGER.debug("Filtered {} files to check. {}", filtered.size(), filtered);
         FileInfo firstFiltered = filtered.peek(); // might be the files with the same modification time or that is newer than the current one
         boolean differentFile = true;
         if (lastProcessedFile != null && sameFile(lastProcessedFile, firstFiltered)) {
             differentFile = false;
             if (isFileModified(lastProcessedFile, firstFiltered)) {
+                if (lastReadString == null) {
+                    updateCurrentFileInfo(filtered.remove()); // fast way. we have read the whole file till the end and now it is updated
+                    readNextLineSkipLast(); // update the last line
+                    return hasNextLine();
+                }
                 long lastBeforePosition = lastProcessedFile.getPositionBeforeLastString();
                 long lastAfterPosition = lastProcessedFile.getPositionAfterLastString();
                 restoreLastPosition(lastBeforePosition);
@@ -124,10 +129,8 @@ public class DirectoryWatchLogReader implements ILogReader {
                 if (Objects.equals(lastReadString, lastString)) {
                     canReturnLastString = true;
                     lastReadString = lastString;
-                    FileInfo nextFile = filtered.poll();  // remove this file from queue because it is current now
-                    //noinspection ConstantConditions
-                    nextFile.copyPosition(lastProcessedFile); // we can be there only if 'nextFile' is not null
-                    lastProcessedFile = nextFile;
+                    FileInfo nextFile = filtered.remove();  // remove this file from queue because it is current now
+                    updateCurrentFileInfo(nextFile);
                     addFilesToQueue(filtered);
                     return true;
                 }
@@ -148,6 +151,12 @@ public class DirectoryWatchLogReader implements ILogReader {
         addFilesToQueue(filtered);
         canReturnLastString = lastReadString != null;
         return canReturnLastString || (!filtered.isEmpty() && differentFile);
+    }
+
+    private void updateCurrentFileInfo(FileInfo nextFile) {
+        //noinspection ConstantConditions
+        nextFile.copyPosition(lastProcessedFile); // we can be there only if 'nextFile' is not null
+        lastProcessedFile = nextFile;
     }
 
     /**
@@ -278,7 +287,7 @@ public class DirectoryWatchLogReader implements ILogReader {
     private String readNextLineSkipLast() throws IOException {
         if (lastReadString != null && canReturnLastString) {
             canReturnLastString = false;
-            return getLastAndUpdate(null);
+            return getLastAndUpdate(readNextLine());
         }
         String line = readNextLine();
         if (line != null) {
@@ -298,11 +307,25 @@ public class DirectoryWatchLogReader implements ILogReader {
         if (fileReader == null) {
             return null;
         }
-        String readLine = fileReader.readLine();
-        if (readLine != null) {
-            lastProcessedFile.updatePosition(fileReader.getFilePointer());
-        }
+        String readLine;
+        do {
+            readLine = fileReader.readLine();
+            if (readLine != null) {
+                lastProcessedFile.updatePosition(fileReader.getFilePointer());
+            }
+
+            // The empty string might be a line without content
+            // or the part of the previous line in case it was not ended with LF when we finished reading before.
+            // In both cases we need to skip those lines
+        } while (readLine != null && readLine.isEmpty());
         return readLine;
+    }
+
+    private boolean hasNextLine() throws IOException {
+        long currentPointer = fileReader.getFilePointer();
+        String line = fileReader.readLine();
+        fileReader.seek(currentPointer);
+        return line != null;
     }
 
     @Nullable
