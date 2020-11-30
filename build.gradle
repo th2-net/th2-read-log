@@ -52,8 +52,6 @@ dependencies {
     implementation 'io.grpc:grpc-protobuf'
     implementation 'com.google.protobuf:protobuf-java-util'
 
-    implementation 'net.logstash.logback:logstash-logback-encoder:5.2'
-
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     implementation "org.slf4j:slf4j-log4j12"
