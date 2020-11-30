@@ -292,6 +292,101 @@ class TestDirectoryWatchLogReader {
         }
     }
 
+    @Test
+    void lineWithoutLFAtTheEnd() throws Exception {
+        String fileName = "test_file1";
+        createFileWithoutNewLineAtTheEnd(fileName, List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+            appendToFile(fileName, List.of("" /*emulate LF*/, "new line", "new line 2", "last line"));
+            assertCanRead(reader); // the new file exists in file
+
+            assertEquals(List.of("line C", "new line", "new line 2"), readAllLines(reader));
+
+            assertCanRead(reader);
+
+            assertEquals(List.of("last line"), readAllLines(reader));
+
+            assertCannotRead(reader);
+        }
+    }
+
+    @Test
+    void newFileIsAdded() throws Exception {
+        String fileName = "test_file1";
+        createFileWithoutNewLineAtTheEnd(fileName, List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+            createFile("test_file2", List.of("test", "test1"));
+            assertCanRead(reader); // the new file exists in files
+
+            assertEquals(List.of("line C", "test"), readAllLines(reader));
+
+            assertCanRead(reader);
+
+            assertEquals(List.of("test1"), readAllLines(reader));
+
+            assertCannotRead(reader);
+        }
+    }
+
+    @Test
+    void fileReadTillTheEndAndAddOneLine() throws Exception {
+        String fileName = "test_file1";
+        createFileWithoutNewLineAtTheEnd(fileName, List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+            assertCanRead(reader); // the last line is not modified
+
+            assertEquals(List.of("line C"), readAllLines(reader));
+
+            assertCannotRead(reader);
+
+            appendToFile(fileName, List.of("" /*to get LN*/, "line D"));
+            assertCannotRead(reader); // the last line need way another check
+            assertCanRead(reader);
+
+            assertEquals(List.of("line D"), readAllLines(reader));
+            assertCannotRead(reader);
+        }
+    }
+
+    @Test
+    void fileReadTillTheEndAndAddMoreThanOneLine() throws Exception {
+        String fileName = "test_file1";
+        createFileWithoutNewLineAtTheEnd(fileName, List.of("line A", "line B", "line C"));
+
+        try (ILogReader reader = getReader()) {
+            List<String> lines = readAllLines(reader);
+
+            assertEquals(List.of("line A", "line B"), lines);
+            assertCanRead(reader); // the last line is not modified
+
+            assertEquals(List.of("line C"), readAllLines(reader));
+
+            assertCannotRead(reader);
+
+            appendToFile(fileName, List.of("" /*to get LN*/, "line D", "line E"));
+            assertCanRead(reader); // more than one line added
+
+            assertEquals(List.of("line D"), readAllLines(reader));
+
+            assertCanRead(reader); // last line is not modified
+
+            assertEquals(List.of("line E"), readAllLines(reader));
+            assertCannotRead(reader);
+        }
+    }
+
     private void assertCannotRead(ILogReader reader) throws IOException {
         assertFalse(reader.refresh());
         assertNull(reader.getNextLine());
