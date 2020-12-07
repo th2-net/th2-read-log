@@ -387,6 +387,34 @@ class TestDirectoryWatchLogReader {
         }
     }
 
+    @Test
+    void readsNewFileWhenOldIsDeleted() throws Exception {
+        createFile("test1", List.of("1", "2", "3"));
+
+        try(ILogReader reader = getReader()) {
+            assertEquals(List.of("1", "2"), readAllLines(reader));
+            assertCanRead(reader);
+            assertEquals(List.of("3"), readAllLines(reader));
+            assertCannotRead(reader);
+
+            File file = getFile("test1");
+            // remove file to empty the directory
+            assertTrue(file.delete(), "Cannot delete file " + file);
+
+            // refresh to reset state because we read all data and no files in directory
+            assertCannotRead(reader);
+
+            // read file with the same name but different creation time
+            createFile("test1", List.of("1", "2", "3"));
+
+            assertCanRead(reader); // new file appears
+            assertEquals(List.of("1", "2"), readAllLines(reader));
+            assertCanRead(reader);
+            assertEquals(List.of("3"), readAllLines(reader));
+            assertCannotRead(reader);
+        }
+    }
+
     private void assertCannotRead(ILogReader reader) throws IOException {
         assertFalse(reader.refresh());
         assertNull(reader.getNextLine());
@@ -426,7 +454,7 @@ class TestDirectoryWatchLogReader {
     }
 
     private void writeToFile(String name, boolean append, Collection<String> content, boolean addNewLineToTheEnd) throws Exception {
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(new File(logDirectory, name), append))) {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(getFile(name), append))) {
             Iterator<String> iterator = content.iterator();
             while (iterator.hasNext()) {
                 String line = iterator.next();
@@ -437,8 +465,12 @@ class TestDirectoryWatchLogReader {
             }
             out.flush();
         }
-        try(InputStream in = new FileInputStream(new File(logDirectory, name))) {
+        try(InputStream in = new FileInputStream(getFile(name))) {
             LOGGER.info("Content: {}", new String(in.readAllBytes())); // touch file
         }
+    }
+
+    private File getFile(String name) {
+        return new File(logDirectory, name);
     }
 }

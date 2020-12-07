@@ -103,7 +103,10 @@ public class DirectoryWatchLogReader implements ILogReader {
         }
         Queue<FileInfo> files = findFiles();
         if (files == null || files.isEmpty()) {
-            LOGGER.debug("No new files found in the directory {}", logDirectory);
+            LOGGER.debug("No files found in the directory {}", logDirectory);
+            if (lastReadString == null) { // we have read the whole file
+                resetState();
+            }
             return false;
         }
         Queue<FileInfo> filtered = filterCurrentAndNewer(lastProcessedFile, files);
@@ -151,6 +154,12 @@ public class DirectoryWatchLogReader implements ILogReader {
         addFilesToQueue(filtered);
         canReturnLastString = lastReadString != null;
         return canReturnLastString || (!filtered.isEmpty() && differentFile);
+    }
+
+    private void resetState() throws IOException {
+        close();
+        fileReader = null;
+        lastProcessedFile = null;
     }
 
     private void updateCurrentFileInfo(FileInfo nextFile) {
@@ -337,8 +346,8 @@ public class DirectoryWatchLogReader implements ILogReader {
         Instant lastProcessedFileCreationTime = lastProcessedFile == null ? null : lastProcessedFile.getLastModifiedTime();
         Comparator<FileInfo> nameComparator = comparing(it -> it.getPath().getFileName());
         return Arrays.stream(files)
-                .map(FileInfo::new)
-                .filter(it -> lastProcessedFileCreationTime == null || it.getLastModifiedTime().compareTo(lastProcessedFileCreationTime) >= 0)
+                .map(DirectoryWatchLogReader::createFileInfo)
+                .filter(it -> it != null && (lastProcessedFileCreationTime == null || it.getLastModifiedTime().compareTo(lastProcessedFileCreationTime) >= 0))
                 .sorted(comparing(FileInfo::getLastModifiedTime).thenComparing(nameComparator))
                 .collect(Collectors.toCollection(LinkedList::new));
     }
@@ -372,7 +381,8 @@ public class DirectoryWatchLogReader implements ILogReader {
 
         private FileInfo(File file) {
             this.path = file.toPath();
-            BasicFileAttributes attributes = extractAttributes(path);
+            BasicFileAttributes attributes = Objects.requireNonNull(extractAttributes(path),
+                    () -> "Attributes for file " + path);
             lastModifiedTime = attributes.lastModifiedTime().toInstant();
             size = attributes.size();
         }
@@ -451,12 +461,27 @@ public class DirectoryWatchLogReader implements ILogReader {
                     .toString();
         }
 
-        private static BasicFileAttributes extractAttributes(Path path) {
-            try {
-                return Files.readAttributes(path, BasicFileAttributes.class);
-            } catch (IOException e) {
-                throw new RuntimeException("Cannot extract basic attributes for file " + path, e);
-            }
+    }
+
+    @Nullable
+    private static FileInfo createFileInfo(File file) {
+        Path path = file.toPath();
+        BasicFileAttributes attributes = extractAttributes(path);
+        if (attributes == null) {
+            // cannot extract attributes
+            // that means we cannot process that file (probably because it was removed) and should skip it
+            return null;
+        }
+        return new FileInfo(path, attributes.lastModifiedTime().toInstant(), attributes.size());
+    }
+
+    @Nullable
+    private static BasicFileAttributes extractAttributes(Path path) {
+        try {
+            return Files.readAttributes(path, BasicFileAttributes.class);
+        } catch (IOException e) {
+            LOGGER.error("Cannot extract basic attributes for file {}", path, e);
+            return null;
         }
     }
 

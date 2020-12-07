@@ -89,7 +89,7 @@ public class Main extends Object  {
                         long currentTime = System.currentTimeMillis();
                         long timeSinceLastReset = Math.abs(currentTime - lastResetTime);
                         if (timeSinceLastReset < 1_000) {
-                            LOGGER.trace("Suspend reading. Last time: {} mills, current time: {} mills, batches published: {}", lastResetTime, currentTime,
+                            LOGGER.debug("Suspend reading. Last time: {} mills, current time: {} mills, batches published: {}", lastResetTime, currentTime,
                                     batchesPublished);
                             Thread.sleep(1_000 - timeSinceLastReset);
                             continue;
