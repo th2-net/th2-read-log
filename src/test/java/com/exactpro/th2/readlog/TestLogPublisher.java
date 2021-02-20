@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,13 +30,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 
 @DisplayName("Batch published")
 public class TestLogPublisher {
     @SuppressWarnings("unchecked")
-    private final MessageRouter<RawMessageBatch> routerMock = Mockito.mock(MessageRouter.class);
+    private final MessageRouter<MessageGroupBatch> routerMock = Mockito.mock(MessageRouter.class);
 
     @Nested
     @DisplayName("With default parameters")
@@ -57,10 +58,10 @@ public class TestLogPublisher {
                 publisher.publish(String.valueOf(it));
             }
 
-            ArgumentCaptor<RawMessageBatch> argumentCaptor = ArgumentCaptor.forClass(RawMessageBatch.class);
+            ArgumentCaptor<MessageGroupBatch> argumentCaptor = ArgumentCaptor.forClass(MessageGroupBatch.class);
             Mockito.verify(routerMock).sendAll(argumentCaptor.capture(), ArgumentMatchers.any());
 
-            assertEquals(LogPublisher.LINES_BATCH_LIMIT, argumentCaptor.getValue().getMessagesCount());
+            assertEquals(LogPublisher.LINES_BATCH_LIMIT, argumentCaptor.getValue().getGroups(0).getMessagesCount());
         }
     }
 
@@ -83,10 +84,10 @@ public class TestLogPublisher {
                 publisher.publish(String.valueOf(it));
             }
 
-            ArgumentCaptor<RawMessageBatch> argumentCaptor = ArgumentCaptor.forClass(RawMessageBatch.class);
+            ArgumentCaptor<MessageGroupBatch> argumentCaptor = ArgumentCaptor.forClass(MessageGroupBatch.class);
             Mockito.verify(routerMock).sendAll(argumentCaptor.capture(), ArgumentMatchers.any());
-
-            assertEquals(10, argumentCaptor.getValue().getMessagesCount());
+            
+            assertEquals(10, argumentCaptor.getValue().getGroups(0).getMessagesCount());
         }
 
         @Test
@@ -98,12 +99,13 @@ public class TestLogPublisher {
             publisher.publish(lineA);
             publisher.publish(lineB);
 
-            ArgumentCaptor<RawMessageBatch> argumentCaptor = ArgumentCaptor.forClass(RawMessageBatch.class);
+            ArgumentCaptor<MessageGroupBatch> argumentCaptor = ArgumentCaptor.forClass(MessageGroupBatch.class);
             Mockito.verify(routerMock).sendAll(argumentCaptor.capture(), ArgumentMatchers.any());
 
-            RawMessageBatch value = argumentCaptor.getValue();
-            assertEquals(1, value.getMessagesCount());
-            assertArrayEquals(lineA.getBytes(), value.getMessages(0).getBody().toByteArray());
+            MessageGroupBatch value = argumentCaptor.getValue(); 
+            assertEquals(1, value.getGroupsCount());
+            
+            assertArrayEquals(lineA.getBytes(), value.getGroups(0).getMessages(0).getRawMessage().getBody().toByteArray());
         }
 
         @Test
@@ -113,16 +115,17 @@ public class TestLogPublisher {
             publisher.publish(line);
 
             // should not publish because no limit excited
-            Mockito.verify(routerMock, Mockito.never()).sendAll(ArgumentMatchers.any(RawMessageBatch.class), ArgumentMatchers.any());
+            Mockito.verify(routerMock, Mockito.never()).sendAll(ArgumentMatchers.any(MessageGroupBatch.class), ArgumentMatchers.any());
 
             publisher.close();
 
-            ArgumentCaptor<RawMessageBatch> argumentCaptor = ArgumentCaptor.forClass(RawMessageBatch.class);
+            ArgumentCaptor<MessageGroupBatch> argumentCaptor = ArgumentCaptor.forClass(MessageGroupBatch.class);
             Mockito.verify(routerMock).sendAll(argumentCaptor.capture(), ArgumentMatchers.any());
 
-            RawMessageBatch value = argumentCaptor.getValue();
-            assertEquals(1, value.getMessagesCount());
-            assertArrayEquals(line.getBytes(), value.getMessages(0).getBody().toByteArray());
+            MessageGroupBatch value = argumentCaptor.getValue(); 
+            assertEquals(1, value.getGroupsCount());
+            
+            assertArrayEquals(line.getBytes(), value.getGroups(0).getMessages(0).getRawMessage().getBody().toByteArray());
         }
     }
 }

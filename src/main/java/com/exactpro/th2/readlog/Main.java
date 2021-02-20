@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public class Main extends Object  {
         String sessionAlias = logFile == null
                 ? configuration.getSessionAlias()
                 : logFile.getName(); // for backward compatibility
-        LogPublisher publisher = new LogPublisher(sessionAlias, commonFactory.getMessageRouterRawBatch());
+        LogPublisher publisher = new LogPublisher(sessionAlias, commonFactory.getMessageRouterMessageGroupBatch());
         toDispose.add(publisher);
 
 
