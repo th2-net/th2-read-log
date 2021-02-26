@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,17 +27,13 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.Direction;
-import com.exactpro.th2.common.grpc.MessageGroup;
-import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.schema.message.MessageRouter;
-import com.exactpro.th2.common.schema.message.QueueAttribute;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
@@ -54,7 +50,7 @@ public class LogPublisher implements AutoCloseable {
     private final int characterBatchLimit;
     static final int LINES_BATCH_LIMIT = 100;
     private final int linesBatchLimit;
-    private final MessageRouter<MessageGroupBatch> batchMessageRouter;
+    private final MessageRouter<RawMessageBatch> batchMessageRouter;
     private final String sessionAlias;
 
 	private long sequence = firstSequence();
@@ -62,11 +58,11 @@ public class LogPublisher implements AutoCloseable {
 	private long size = 0;
 	private long lastPublishTs = Clock.systemDefaultZone().instant().getEpochSecond();
 
-    public LogPublisher(String sessionAlias, MessageRouter<MessageGroupBatch> batchMessageRouter) {
+    public LogPublisher(String sessionAlias, MessageRouter<RawMessageBatch> batchMessageRouter) {
         this(sessionAlias, batchMessageRouter, LINES_BATCH_LIMIT, CHARACTER_BATCH_LIMIT);
     }
 
-    LogPublisher(String sessionAlias, MessageRouter<MessageGroupBatch> batchMessageRouter, int linesLimit, int charactersLimit) {
+    LogPublisher(String sessionAlias, MessageRouter<RawMessageBatch> batchMessageRouter, int linesLimit, int charactersLimit) {
         this.sessionAlias = Objects.requireNonNull(sessionAlias, "'Session alias' parameter");
         this.batchMessageRouter = Objects.requireNonNull(batchMessageRouter, "'Batch message router' parameter");
         if (linesLimit <= 0) {
@@ -86,17 +82,10 @@ public class LogPublisher implements AutoCloseable {
     }
 
 	private void publish() throws IOException {
-		MessageGroupBatch.Builder groupBatch = MessageGroupBatch.newBuilder();
-		
-		MessageGroup.Builder groupBuilder = groupBatch.addGroupsBuilder();	
-		
 		RawMessageBatch.Builder builder = RawMessageBatch.newBuilder();
 
 		for (String str: listOfLines) {
-
-			AnyMessage.Builder anyMsgBuilder = groupBuilder.addMessagesBuilder();
-			
-			RawMessage.Builder msgBuilder = RawMessage.newBuilder();
+			RawMessage.Builder msgBuilder = builder.addMessagesBuilder();
 
 			ByteString body = ByteString.copyFrom(str.getBytes());
 
@@ -126,17 +115,17 @@ public class LogPublisher implements AutoCloseable {
 
 			metaData.setId(messageId);
 
-			msgBuilder.setMetadata(metaData);		
-			
-			anyMsgBuilder.setRawMessage(msgBuilder.build());
+			msgBuilder.setMetadata(metaData);						
 		}
 
 		listOfLines.clear();
 
-        if (groupBatch.getGroupsCount() > 0) {
-            batchMessageRouter.sendAll(groupBatch.build(), QueueAttribute.PUBLISH.toString(), QueueAttribute.RAW.toString());
+        RawMessageBatch batch = builder.build();
 
-            logger.trace("Raw batch published: {}", JsonFormat.printer().omittingInsignificantWhitespace().print(groupBatch));
+        if (batch.getMessagesCount() > 0) {
+            batchMessageRouter.sendAll(batch);
+
+            logger.trace("Raw batch published: {}", JsonFormat.printer().omittingInsignificantWhitespace().print(batch));
         } else {
             logger.trace("Skip publishing empty batch");
         }
