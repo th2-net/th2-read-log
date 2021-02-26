@@ -34,7 +34,6 @@ import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.schema.message.MessageRouter;
-import com.exactpro.th2.common.schema.message.QueueAttribute;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
@@ -124,7 +123,7 @@ public class LogPublisher implements AutoCloseable {
         RawMessageBatch batch = builder.build();
 
         if (batch.getMessagesCount() > 0) {
-            batchMessageRouter.sendAll(batch, QueueAttribute.PUBLISH.toString(), QueueAttribute.RAW.toString());
+            batchMessageRouter.sendAll(batch);
 
             logger.trace("Raw batch published: {}", JsonFormat.printer().omittingInsignificantWhitespace().print(batch));
         } else {
