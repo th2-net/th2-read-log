@@ -19,50 +19,58 @@ package com.exactpro.th2.readlog;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.exactpro.th2.read.file.common.StreamId;
+import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RegexLogParser {
-	private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
-    private final Pattern pattern;
-	private final List<Integer> regexGroups;
+    private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
+    private final Map<String, AliasConfiguration> cfg;
 
-	public RegexLogParser(String regex, List<Integer> regexGroups) {
+    public RegexLogParser(Map<String, AliasConfiguration> cfg) {
+        this.cfg = Objects.requireNonNull(cfg, "'Cfg' parameter");
+        if (cfg.isEmpty()) {
+            throw new IllegalArgumentException("At least one alis must be specified");
+        }
+    }
 
-		this.regexGroups = regexGroups == null ? Collections.emptyList() : regexGroups;
-		pattern = Pattern.compile(regex);
+    public List<String> parse(StreamId streamId, String raw) {
+        List<String> result = new ArrayList<>();
+        AliasConfiguration configuration = cfg.get(streamId.getSessionAlias());
+        if (configuration == null) {
+            logger.info("Unknown stream ID {}", streamId);
+            return Collections.emptyList();
+        }
 
-		logger.info("Regex expression '{}'", regex);
-		logger.info("Regex groups to output '{}'", regexGroups);
-	}
+        Pattern pattern = configuration.getRegexp();
+        List<Integer> regexGroups = configuration.getGroups();
+        Matcher matcher = pattern.matcher(raw);
 
-	List<String> parse (String raw) {
-		List<String> result = new ArrayList<>();
+        if (regexGroups.isEmpty()) {
+            while (matcher.find()) {
+                for (int i = 0; i <= matcher.groupCount(); ++i) {
+                    String res = matcher.group(i);
+                    result.add(res);
+                    logger.trace("ParsedLogLine: {}", res);
+                }
+            }
+        } else {
+            while (matcher.find()) {
+                for (int index : regexGroups) {
+                    String res = matcher.group(index);
+                    result.add(res);
+                    logger.trace("ParsedLogLine: {}", res);
+                }
+            }
 
-		Matcher matcher = pattern.matcher(raw);
+        }
 
-		if (regexGroups.isEmpty()) {
-			while (matcher.find()) {
-				for (int i = 0; i <= matcher.groupCount(); ++i) {
-					String res = matcher.group(i); 
-					result.add(res);
-					logger.trace("ParsedLogLine: {}",res);
-				}
-			}
-		} else {
-			while (matcher.find()) {
-				for (int index : regexGroups) {
-					String res = matcher.group(index);
-					result.add(res);
-					logger.trace("ParsedLogLine: {}",res);
-				}
-			}
-
-		}
-
-		return result;
-	}
+        return result;
+    }
 }
