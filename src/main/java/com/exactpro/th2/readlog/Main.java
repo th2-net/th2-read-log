@@ -111,7 +111,7 @@ public class Main extends Object {
                     configuration.getCommon(),
                     directoryChecker,
                     new RegexpContentParser(logParser),
-                    new MovedFileTracker(configuration.getLogDirectory(), null),
+                    new MovedFileTracker(configuration.getLogDirectory()),
                     new InMemoryReaderState(),
                     Main::createSource
             )

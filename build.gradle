@@ -49,7 +49,7 @@ repositories {
 dependencies {
     api platform('com.exactpro.th2:bom:2.10.2')
     api 'com.exactpro.th2:common:3.13.2'
-    api 'com.exactpro.th2:read-file-common-core:0.0.5'
+    api 'com.exactpro.th2:read-file-common-core:0.0.6'
 
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
