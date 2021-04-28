@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.event.EventUtils;
@@ -60,6 +61,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Comparator.comparing;
+
 public class Main extends Object {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -81,14 +84,14 @@ public class Main extends Object {
         MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
         LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, MAPPER);
-
+        Comparator<Path> pathComparator = comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER);
         var directoryChecker = new DirectoryChecker(
                 configuration.getLogDirectory(),
-                Comparator.comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER),
                 (Path path) -> configuration.getAliases().entrySet().stream()
                         .filter(entry -> entry.getValue().getPathFilter().matcher(path.getFileName().toString()).matches())
                         .map(it -> new StreamId(it.getKey(), Direction.FIRST))
-                        .findFirst().orElse(null),
+                        .collect(Collectors.toSet()),
+                files -> files.sort(pathComparator),
                 path -> true
         );
         RegexLogParser logParser = new RegexLogParser(configuration.getAliases());

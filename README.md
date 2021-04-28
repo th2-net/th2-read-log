@@ -67,7 +67,9 @@ spec:
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
     + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
-+ common - the common configuration for read core 
++ common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
+  NOTE: the fields with `Duration` type should be described in the following format `PT<number><time unit>`.
+  Supported time units (**H** - hours,**M** - minutes,**S** - seconds). E.g. PT5S - 5 seconds, PT5M - 5 minutes, PT0.001S - 1 millisecond
 + pullingInterval - how often the directory will be checked for updates after not updates is received
 
 ##### Pin declaration
