@@ -55,7 +55,10 @@ public class LogReader implements ILogReader {
 
 	    try (Stream<String> lines = Files.lines(file.toPath())) {
 	        return lines.count();
-	    }
+	    } catch (IOException e) {
+	        logger.error("Could not read lines from the file '{}'", file, e);
+	        throw e;
+        }
 	}
 
 	public void skip(long lineNumber) throws IOException {
