@@ -40,11 +40,11 @@ public class RegexLogParser {
         }
     }
 
-    public List<String> parse(StreamId streamId, String raw) {
+    public List<String> parse(String alias, String raw) {
         List<String> result = new ArrayList<>();
-        AliasConfiguration configuration = cfg.get(streamId.getSessionAlias());
+        AliasConfiguration configuration = cfg.get(alias);
         if (configuration == null) {
-            logger.info("Unknown stream ID {}", streamId);
+            logger.info("Unknown alias {}, there no configuration", alias);
             return Collections.emptyList();
         }
 

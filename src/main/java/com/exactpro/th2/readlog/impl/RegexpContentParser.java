@@ -41,7 +41,7 @@ public class RegexpContentParser extends LineParser {
     @Nonnull
     @Override
     protected List<RawMessage.Builder> lineToMessages(@Nonnull StreamId streamId, @Nonnull String readLine) {
-        List<String> toPublish = parser.parse(streamId, readLine);
+        List<String> toPublish = parser.parse(streamId.getSessionAlias(), readLine);
         LOGGER.trace("{} line(s) extracted from {}: {}", toPublish.size(), readLine, toPublish);
         return toPublish.stream()
                 .map(it -> RawMessage.newBuilder().setBody(ByteString.copyFrom(it.getBytes(StandardCharsets.UTF_8))))
