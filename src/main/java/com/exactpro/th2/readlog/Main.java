@@ -20,6 +20,7 @@ import static com.exactpro.th2.readlog.cfg.LogReaderConfiguration.NO_LIMIT;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -111,15 +112,20 @@ public class Main extends Object  {
 				} else {
                     // wait for file update
                     Thread.sleep(5000);
-					if (!reader.refresh()) {
-					    // nothing to read. Need to flush all data that is not published yet
-					    publisher.flush();
-					}
+                    try {
+                        if (!reader.refresh()) {
+                            // nothing to read. Need to flush all data that is not published yet
+                            publisher.flush();
+                        }
+                    } catch (MalformedInputException e) {
+                        LOGGER.warn("One of lines isn't fully completed or contains illegal characters", e);
+                    }
 				}
 			}
 
 		} catch (IOException| InterruptedException e) {
 			LOGGER.error("Cannot read log file: {}", logFile, e);
+            System.exit(-1);
 		}
 	}
 
