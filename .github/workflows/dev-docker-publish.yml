@@ -43,33 +43,3 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.ver.outputs.value }}
-      - uses: shrink/actions-docker-extract@v1
-        with:
-          image: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
-          path: /home/service
-      - name: find service
-        run: find -name "*service*"
-      - name: Create Draft Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.release_ver.outputs.value }}
-          release_name: ${{ steps.release_ver.outputs.value }}
-          draft: true
-          prerelease: false
-      - uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/distributions/service.tar
-          asset_name: ${{ steps.meta.outputs.REPOSITORY_NAME }}.tar
-          asset_content_type: application/tar
-
-      - uses: eregon/publish-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_id: ${{ steps.create_release.outputs.id }}
