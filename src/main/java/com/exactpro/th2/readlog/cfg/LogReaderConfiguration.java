@@ -26,8 +26,6 @@ import com.exactpro.th2.read.file.common.cfg.CommonFileReaderConfiguration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 public class LogReaderConfiguration {
     @JsonProperty(required = true)

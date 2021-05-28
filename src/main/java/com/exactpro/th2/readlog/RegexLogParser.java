@@ -16,15 +16,15 @@
 
 package com.exactpro.th2.readlog;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +40,13 @@ public class RegexLogParser {
         }
     }
 
-    public List<String> parse(String alias, String raw) {
-        List<String> result = new ArrayList<>();
+    public LogData parse(String alias, String raw) {
+        LogData resultData = new LogData();
+
         AliasConfiguration configuration = cfg.get(alias);
         if (configuration == null) {
-            logger.info("Unknown alias {}, there no configuration", alias);
-            return Collections.emptyList();
+            logger.error("Unknown alias {}, there no configuration", alias);
+            return new LogData();
         }
 
         Pattern pattern = configuration.getRegexp();
@@ -56,7 +57,7 @@ public class RegexLogParser {
             while (matcher.find()) {
                 for (int i = 0; i <= matcher.groupCount(); ++i) {
                     String res = matcher.group(i);
-                    result.add(res);
+                    resultData.getBody().add(res);
                     logger.trace("ParsedLogLine: {}", res);
                 }
             }
@@ -64,13 +65,39 @@ public class RegexLogParser {
             while (matcher.find()) {
                 for (int index : regexGroups) {
                     String res = matcher.group(index);
-                    result.add(res);
+                    resultData.getBody().add(res);
                     logger.trace("ParsedLogLine: {}", res);
                 }
             }
 
         }
 
-        return result;
+        // Timestamp from log
+        Pattern datePattern = configuration.getTimestampRegexp();
+        if (datePattern!=null) {
+            Matcher dateMatcher = datePattern.matcher(raw);
+            if(dateMatcher.find()) {
+                String res = dateMatcher.group(0);
+                resultData.setRawTimestamp(res);
+                logger.trace("Found timestamp: {}", res);
+            } else {
+                logger.error("Timestamp with regex \"{}\" was not found in the log", datePattern.pattern());
+                return new LogData();
+            }
+
+            String format = configuration.getTimestampFormat();
+            if (format != null && !format.isEmpty()) {
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                    LocalDateTime dateTime = LocalDateTime.parse(resultData.getRawTimestamp(), formatter);
+                    resultData.setLocalDateTime(dateTime);
+                    logger.trace("ParsedTimestamp: {}", dateTime.toString());
+                } catch (DateTimeException e) {
+                    logger.error("Timestamp \"{}\" with regex \"{}\" can't be parsed to format \"{}\"", resultData.getRawTimestamp(), datePattern.pattern(), format);
+                    return new LogData();
+                }
+            }
+        }
+        return resultData;
     }
 }

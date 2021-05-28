@@ -15,18 +15,22 @@
  */
 package com.exactpro.th2.readlog.impl;
 
+import com.exactpro.th2.common.grpc.RawMessageMetadata;
+import com.exactpro.th2.common.message.MessageUtils;
+import com.exactpro.th2.readlog.LogData;
+import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.read.file.common.impl.LineParser;
 import com.exactpro.th2.readlog.RegexLogParser;
-import com.google.protobuf.ByteString;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +45,22 @@ public class RegexpContentParser extends LineParser {
     @Nonnull
     @Override
     protected List<RawMessage.Builder> lineToMessages(@Nonnull StreamId streamId, @Nonnull String readLine) {
-        List<String> toPublish = parser.parse(streamId.getSessionAlias(), readLine);
-        LOGGER.trace("{} line(s) extracted from {}: {}", toPublish.size(), readLine, toPublish);
-        return toPublish.stream()
-                .map(it -> RawMessage.newBuilder().setBody(ByteString.copyFrom(it.getBytes(StandardCharsets.UTF_8))))
-                .collect(Collectors.toList());
+        LogData logData = parser.parse(streamId.getSessionAlias(), readLine);
+        LOGGER.trace("{} line(s) extracted from {}: {}", logData.getBody().size(), readLine, logData.getBody());
+        return logData.getBody().stream().map(it -> {
+            RawMessage.Builder builder = RawMessage.newBuilder();
+            setupMetadata(builder.getMetadataBuilder(), logData);
+            builder.setBody(ByteString.copyFrom(it.getBytes(StandardCharsets.UTF_8)));
+            return builder;
+        }).collect(Collectors.toList());
     }
+
+    private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
+        if (logData.getLocalDateTime() != null) {
+            builder.setTimestamp(MessageUtils.toTimestamp(logData.getLocalDateTime()));
+        } else if (logData.getRawTimestamp() != null) {
+            builder.putProperties("logTimestamp", logData.getRawTimestamp());
+        }
+    }
+
 }

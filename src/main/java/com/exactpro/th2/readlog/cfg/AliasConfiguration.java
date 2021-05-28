@@ -16,6 +16,7 @@
 
 package com.exactpro.th2.readlog.cfg;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -23,22 +24,32 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import javax.annotation.Nullable;
 
 public class AliasConfiguration {
     private final Pattern regexp;
     private final Pattern pathFilter;
+
+    @JsonPropertyDescription("The regexp which will be used to get timestamp from log line")
+    private final Pattern timestampRegexp;
+
+    @JsonPropertyDescription("The format which will be used to parse matched timestamp")
+    private final String timestampFormat;
+
     private List<Integer> groups = Collections.emptyList();
 //    private List<SortingConfiguration> sortBy = Collections.emptyList();
 
     @JsonCreator
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
-            @JsonProperty(value = "pathFilter") String pathFilter
+            @JsonProperty(value = "pathFilter", required = true) String pathFilter,
+            @JsonProperty(value = "timestampRegexp") String timestampRegexp,
+            @JsonProperty(value = "timestampFormat") String timestampFormat
     ) {
         this.regexp = Pattern.compile(Objects.requireNonNull(regexp, "'Regexp' parameter"));
         this.pathFilter = Pattern.compile(Objects.requireNonNull(pathFilter, "'Path filter' parameter"));
+        this.timestampRegexp = timestampRegexp != null ? Pattern.compile(timestampRegexp) : null;
+        this.timestampFormat = timestampFormat;
     }
 
     public Pattern getRegexp() {
@@ -56,6 +67,17 @@ public class AliasConfiguration {
     public void setGroups(List<Integer> groups) {
         this.groups = groups;
     }
+
+    @Nullable
+    public Pattern getTimestampRegexp() {
+        return timestampRegexp;
+    }
+
+    @Nullable
+    public String getTimestampFormat() {
+        return timestampFormat;
+    }
+
 
 //    public List<SortingConfiguration> getSortBy() {
 //        return sortBy;

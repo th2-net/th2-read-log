@@ -7,7 +7,9 @@
     },
     "B": {
       "regexp": ".*",
-      "pathFilter": "fileB.*\\.log"
+      "pathFilter": "fileB.*\\.log",
+      "timestampRegexp": "202.*$",
+      "timestampFormat": "yyyy.MM.dd"
     }
   },
   "common": {
