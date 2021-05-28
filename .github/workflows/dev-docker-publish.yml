@@ -43,8 +43,12 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.ver.outputs.value }}
+      - uses: shrink/actions-docker-extract@v1
+        with:
+          image: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
+          path: /home/service
       - name: find service
-        run: find -name service.tar
+        run: find -name "*service*"
       - name: Create Draft Release
         id: create_release
         uses: actions/create-release@v1
