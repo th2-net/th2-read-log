@@ -60,5 +60,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./build/distributions/service.tar
-          asset_name: ${{ steps.meta.outputs.REPOSITORY_NAME }}.tar
+          asset_name: ${{ steps.meta.outputs.REPOSITORY_NAME }}.${{ steps.release_ver.outputs.value }}.tar
           asset_content_type: application/tar
