@@ -20,6 +20,9 @@ import com.exactpro.th2.common.message.MessageUtils;
 import com.exactpro.th2.readlog.LogData;
 import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 
@@ -57,7 +60,8 @@ public class RegexpContentParser extends LineParser {
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
         if (logData.getLocalDateTime() != null) {
-            builder.setTimestamp(MessageUtils.toTimestamp(logData.getLocalDateTime()));
+            ZoneOffset currentOffsetForMyZone = ZoneId.systemDefault().getRules().getOffset(Instant.now());
+            builder.setTimestamp(MessageUtils.toTimestamp(logData.getLocalDateTime(),currentOffsetForMyZone));
         } else if (logData.getRawTimestamp() != null) {
             builder.putProperties("logTimestamp", logData.getRawTimestamp());
         }
