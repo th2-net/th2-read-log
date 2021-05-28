@@ -43,6 +43,8 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.ver.outputs.value }}
+      - name: find service
+        run: find -name service.tar
       - name: Create Draft Release
         id: create_release
         uses: actions/create-release@v1
@@ -53,7 +55,6 @@ jobs:
           release_name: ${{ steps.release_ver.outputs.value }}
           draft: true
           prerelease: false
-
       - uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
