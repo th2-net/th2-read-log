@@ -22,6 +22,8 @@ jobs:
         with:
           path: gradle.properties
           property: release_version
+      - run: echo "::set-output name=REPOSITORY_NAME::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
+        id: meta
       - name: Build custom release version
         id: release_ver
         run: echo ::set-output name=value::"${{ steps.ver.outputs.value }}-${{ steps.branch.outputs.branch_name }}-${{ github.run_id }}-SNAPSHOT"
