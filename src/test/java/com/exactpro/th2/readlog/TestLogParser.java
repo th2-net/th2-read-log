@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.readlog.cfg;
+package com.exactpro.th2.readlog;
 
 import com.exactpro.th2.readlog.LogData;
 import com.exactpro.th2.readlog.RegexLogParser;
+import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,13 +40,13 @@ public class TestLogParser {
         assertEquals(1, data.getBody().size());
         assertEquals("NewOrderSingle={ AuthenticationBlock={ UserID=\"qwrqwrq\" SessionKey=123456 } Header={ MsgTime=2021-Mar-21 21:21:21.210000000 CreationTime=2021-Mar-21 21:21:21.210000000 } NewOrder={ InstrumentBlock={ InstrSymbol=\"TEST_SYMBOL\" SecurityID=\"212121\" SecurityIDSource=TestSource SecurityExchange=\"test\" }}}", data.getBody().get(0));
         assertEquals("2021-03-23 13:21:37.991337479", data.getRawTimestamp());
-        assertEquals(2021, data.getLocalDateTime().getYear());
-        assertEquals(23, data.getLocalDateTime().getDayOfMonth());
-        assertEquals(3, data.getLocalDateTime().getMonthValue());
-        assertEquals(13, data.getLocalDateTime().getHour());
-        assertEquals(21, data.getLocalDateTime().getMinute());
-        assertEquals(37, data.getLocalDateTime().getSecond());
-        assertEquals(991337479, data.getLocalDateTime().getNano());
+        assertEquals(2021, data.getParsedTimestamp().getYear());
+        assertEquals(23, data.getParsedTimestamp().getDayOfMonth());
+        assertEquals(3, data.getParsedTimestamp().getMonthValue());
+        assertEquals(13, data.getParsedTimestamp().getHour());
+        assertEquals(21, data.getParsedTimestamp().getMinute());
+        assertEquals(37, data.getParsedTimestamp().getSecond());
+        assertEquals(991337479, data.getParsedTimestamp().getNano());
     }
 
     @Test

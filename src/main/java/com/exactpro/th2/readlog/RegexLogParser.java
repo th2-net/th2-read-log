@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.exactpro.th2.readlog;
 
 import java.time.DateTimeException;
@@ -49,55 +48,72 @@ public class RegexLogParser {
             return new LogData();
         }
 
-        Pattern pattern = configuration.getRegexp();
         List<Integer> regexGroups = configuration.getGroups();
-        Matcher matcher = pattern.matcher(raw);
-
         if (regexGroups.isEmpty()) {
-            while (matcher.find()) {
-                for (int i = 0; i <= matcher.groupCount(); ++i) {
-                    String res = matcher.group(i);
-                    resultData.getBody().add(res);
-                    logger.trace("ParsedLogLine: {}", res);
-                }
-            }
+            parseBody(raw, configuration.getRegexp(), resultData);
         } else {
-            while (matcher.find()) {
-                for (int index : regexGroups) {
-                    String res = matcher.group(index);
-                    resultData.getBody().add(res);
-                    logger.trace("ParsedLogLine: {}", res);
-                }
-            }
-
+            parseBody(raw, configuration.getRegexp(), regexGroups, resultData);
         }
 
-        // Timestamp from log
+        // Timestamp string from log
         Pattern datePattern = configuration.getTimestampRegexp();
         if (datePattern!=null) {
-            Matcher dateMatcher = datePattern.matcher(raw);
-            if(dateMatcher.find()) {
-                String res = dateMatcher.group(0);
-                resultData.setRawTimestamp(res);
-                logger.trace("Found timestamp: {}", res);
-            } else {
-                logger.error("Timestamp with regex \"{}\" was not found in the log", datePattern.pattern());
-                return new LogData();
-            }
+            if (!lookForTimestamp(raw, datePattern, resultData)) return new LogData();
+        }
 
-            String format = configuration.getTimestampFormat();
-            if (format != null && !format.isEmpty()) {
-                try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-                    LocalDateTime dateTime = LocalDateTime.parse(resultData.getRawTimestamp(), formatter);
-                    resultData.setLocalDateTime(dateTime);
-                    logger.trace("ParsedTimestamp: {}", dateTime.toString());
-                } catch (DateTimeException e) {
-                    logger.error("Timestamp \"{}\" with regex \"{}\" can't be parsed to format \"{}\"", resultData.getRawTimestamp(), datePattern.pattern(), format);
-                    return new LogData();
-                }
+        // DateTime from log
+        String timestampFormat = configuration.getTimestampFormat();
+        if (timestampFormat != null && !timestampFormat.isEmpty()) {
+            if (!parseTimestamp(timestampFormat, resultData)) return new LogData();
+        }
+
+        return resultData;
+    }
+
+    private boolean parseTimestamp(String format, LogData data) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+            LocalDateTime dateTime = LocalDateTime.parse(data.getRawTimestamp(), formatter);
+            data.setParsedTimestamp(dateTime);
+            logger.trace("ParsedTimestamp: {}", dateTime.toString());
+        } catch (DateTimeException e) {
+            logger.error("Timestamp \"{}\" can't be parsed to format \"{}\"", data.getRawTimestamp(),  format);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean lookForTimestamp(String text, Pattern pattern, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        if (!matcher.find()) {
+            logger.error("Timestamp with regex \"{}\" was not found in the log", pattern.pattern());
+            return false;
+        }
+        String res = matcher.group(0);
+        data.setRawTimestamp(res);
+        logger.trace("Found timestamp: {}", res);
+        return true;
+    }
+
+    private void parseBody(String text, Pattern pattern, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            for (int i = 0; i <= matcher.groupCount(); ++i) {
+                String res = matcher.group(i);
+                data.addBody(res);
+                logger.trace("ParsedLogLine: {}", res);
             }
         }
-        return resultData;
+    }
+
+    private void parseBody(String text, Pattern pattern, List<Integer> groups, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            for (int index : groups) {
+                String res = matcher.group(index);
+                data.addBody(res);
+                logger.trace("ParsedLogLine: {}", res);
+            }
+        }
     }
 }
