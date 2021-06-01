@@ -25,7 +25,7 @@ spec:
           regexp: ".*",
           pathFilter: "fileA.*\\.log"
         B:
-          regexp: ".*",
+          regexp: "(.*)(\\d+)(.*)",
           pathFilter: "fileB.*\\.log"
           groups: [ 0, 1 ]
         C:
@@ -76,7 +76,7 @@ spec:
       If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
       If it is set then:
         + If the _timestampFormat_ specified the timestamp will be used as a message timestamp.
-        + Otherwise, the timestamp will be added to the message properties, but the message timestamp will be generated.
+        + Otherwise, the timestamp will be added to the message properties, and the message timestamp will be generated.
     + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
       If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
 + common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
