@@ -1,4 +1,4 @@
-# Log Reader User Manual 1.00
+# Log Reader User Manual 3.0.0
 
 ## Document Information
 
@@ -28,6 +28,11 @@ spec:
           regexp: ".*",
           pathFilter: "fileB.*\\.log"
           groups: [ 0, 1 ]
+        C:
+          regexp: ".*",
+          pathFilter: "fileC.*\\.log"
+          timestampRegexp: "^202.+?(?= QUICK)"
+          timestampFormat: "yyyy-MM-dd HH:mm:ss"
       common:
         staleTimeout: "PT1S"
         maxBatchSize: 100
@@ -67,6 +72,13 @@ spec:
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
     + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
+    + timestampRegexp - the regular expression to extract the timestamp from the log's line.
+      If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
+      If it is set then:
+        + If the _timestampFormat_ specified the timestamp will be used as a message timestamp.
+        + Otherwise, the timestamp will be added to the message properties, but the message timestamp will be generated.
+    + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
+      If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
 + common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
   NOTE: the fields with `Duration` type should be described in the following format `PT<number><time unit>`.
   Supported time units (**H** - hours,**M** - minutes,**S** - seconds). E.g. PT5S - 5 seconds, PT5M - 5 minutes, PT0.001S - 1 millisecond
@@ -109,3 +121,8 @@ Regex: (FixService.+)(8=FIX.+10=.+?)
 Regex group: 2 
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
+## Changes
+
+### 3.0.0
+
++ Migrate to a common read-core
