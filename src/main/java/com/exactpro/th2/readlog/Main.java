@@ -16,8 +16,8 @@
 
 package com.exactpro.th2.readlog;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -36,6 +36,7 @@ import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.event.EventUtils;
 import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.metrics.CommonMetrics;
@@ -46,8 +47,8 @@ import com.exactpro.th2.read.file.common.DirectoryChecker;
 import com.exactpro.th2.read.file.common.FileSourceWrapper;
 import com.exactpro.th2.read.file.common.MovedFileTracker;
 import com.exactpro.th2.read.file.common.StreamId;
-import com.exactpro.th2.read.file.common.impl.BufferedReaderSourceWrapper;
 import com.exactpro.th2.read.file.common.impl.DefaultFileReader;
+import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
 import com.exactpro.th2.readlog.impl.RegexpContentParser;
@@ -103,10 +104,12 @@ public class Main extends Object {
             Event rootEvent = Event.start().endTimestamp()
                     .name("Log reader for " + String.join(",", configuration.getAliases().keySet()))
                     .type("Microservice");
-            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(rootEvent.toProtoEvent(null)).build());
+            var protoEvent = rootEvent.toProto(null);
+            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
+            EventID rootId = protoEvent.getId();
 
             CommonMetrics.setReadiness(true);
-            AbstractFileReader<BufferedReader> reader = new DefaultFileReader.Builder<>(
+            AbstractFileReader<LineNumberReader> reader = new DefaultFileReader.Builder<>(
                     configuration.getCommon(),
                     directoryChecker,
                     new RegexpContentParser(logParser),
@@ -117,8 +120,8 @@ public class Main extends Object {
                     .readFileImmediately()
                     .acceptNewerFiles()
                     .onStreamData((streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders))
-                    .onError((streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootEvent.getId()))
-                    .onSourceCorrupted((streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootEvent.getId()))
+                    .onError((streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId))
+                    .onSourceCorrupted((streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId))
                     .build();
 
             toDispose.add(reader);
@@ -142,7 +145,7 @@ public class Main extends Object {
     }
 
     @NotNull
-    private static Unit publishSourceCorruptedEvent(MessageRouter<EventBatch> eventBatchRouter, Path path, StreamId streamId, Exception e, String rootEventId) {
+    private static Unit publishSourceCorruptedEvent(MessageRouter<EventBatch> eventBatchRouter, Path path, StreamId streamId, Exception e, EventID rootEventId) {
         Event error = Event.start()
                 .name("Corrupted source " + path + " for " + streamId.getSessionAlias())
                 .type("CorruptedSource");
@@ -150,7 +153,7 @@ public class Main extends Object {
     }
 
     @NotNull
-    private static Unit publishErrorEvent(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, String message, Exception ex, String rootEventId) {
+    private static Unit publishErrorEvent(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, String message, Exception ex, EventID rootEventId) {
         Event error = Event.start().endTimestamp()
                 .name(streamId == null ? "General error" : "Error for session alias " + streamId.getSessionAlias())
                 .type("Error")
@@ -159,14 +162,14 @@ public class Main extends Object {
     }
 
     @NotNull
-    private static Unit publishError(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, Exception ex, Event error, String rootEventId) {
+    private static Unit publishError(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, Exception ex, Event error, EventID rootEventId) {
         Throwable tmp = ex;
         while (tmp != null) {
             error.bodyData(EventUtils.createMessageBean(tmp.getMessage()));
             tmp = tmp.getCause();
         }
         try {
-            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(error.toProtoEvent(rootEventId)).build());
+            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(error.toProto(rootEventId)).build());
         } catch (Exception e) {
             LOGGER.error("Cannot send event for stream {}", streamId, e);
         }
@@ -187,9 +190,9 @@ public class Main extends Object {
         return Unit.INSTANCE;
     }
 
-    private static FileSourceWrapper<BufferedReader> createSource(StreamId streamId, Path path) {
+    private static FileSourceWrapper<LineNumberReader> createSource(StreamId streamId, Path path) {
         try {
-            return new BufferedReaderSourceWrapper<>(Files.newBufferedReader(path));
+            return new RecoverableBufferedReaderWrapper(new LineNumberReader(Files.newBufferedReader(path)));
         } catch (IOException e) {
             return ExceptionUtils.rethrow(e);
         }
