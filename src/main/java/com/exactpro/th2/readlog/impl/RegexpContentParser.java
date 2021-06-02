@@ -62,7 +62,8 @@ public class RegexpContentParser extends LineParser {
         if (logData.getParsedTimestamp() != null) {
             ZoneOffset currentOffsetForMyZone = ZoneId.systemDefault().getRules().getOffset(Instant.now());
             builder.setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp(),currentOffsetForMyZone));
-        } else if (logData.getRawTimestamp() != null) {
+        }
+        if (logData.getRawTimestamp() != null) {
             builder.putProperties("logTimestamp", logData.getRawTimestamp());
         }
     }

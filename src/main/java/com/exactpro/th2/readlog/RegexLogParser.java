@@ -40,14 +40,14 @@ public class RegexLogParser {
     }
 
     public LogData parse(String alias, String raw) {
-        LogData resultData = new LogData();
 
         AliasConfiguration configuration = cfg.get(alias);
         if (configuration == null) {
             logger.error("Unknown alias {}, there no configuration", alias);
-            return new LogData();
+            throw new IllegalArgumentException("Unknown alias " + alias +". No configuration found" );
         }
 
+        LogData resultData = new LogData();
         List<Integer> regexGroups = configuration.getGroups();
         if (regexGroups.isEmpty()) {
             parseBody(raw, configuration.getRegexp(), resultData);
@@ -55,32 +55,38 @@ public class RegexLogParser {
             parseBody(raw, configuration.getRegexp(), regexGroups, resultData);
         }
 
+        if (resultData.getBody().isEmpty()) {
+            // fast way, nothing matches the regexp so we don't need to check for date pattern
+            return resultData;
+        }
+
         // Timestamp string from log
         Pattern datePattern = configuration.getTimestampRegexp();
-        if (datePattern!=null) {
-            if (!lookForTimestamp(raw, datePattern, resultData)) return new LogData();
+        if (datePattern != null) {
+            if (!lookForTimestamp(raw, datePattern, resultData)) {
+                throw new IllegalStateException("The pattern " + datePattern.pattern() + " cannot extract the timestamp from the string: " + raw);
+            }
         }
 
         // DateTime from log
         String timestampFormat = configuration.getTimestampFormat();
         if (timestampFormat != null && !timestampFormat.isEmpty()) {
-            if (!parseTimestamp(timestampFormat, resultData)) return new LogData();
+            parseTimestamp(timestampFormat, resultData);
         }
 
         return resultData;
     }
 
-    private boolean parseTimestamp(String format, LogData data) {
+    private void parseTimestamp(String format, LogData data) {
+        String rawTimestamp = data.getRawTimestamp();
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-            LocalDateTime dateTime = LocalDateTime.parse(data.getRawTimestamp(), formatter);
+            LocalDateTime dateTime = LocalDateTime.parse(rawTimestamp, formatter);
             data.setParsedTimestamp(dateTime);
-            logger.trace("ParsedTimestamp: {}", dateTime.toString());
+            logger.trace("ParsedTimestamp: {}", dateTime);
         } catch (DateTimeException e) {
-            logger.error("Timestamp \"{}\" can't be parsed to format \"{}\"", data.getRawTimestamp(),  format);
-            return false;
+            throw new IllegalStateException("The timestamp '" + rawTimestamp + "' cannot be parsed using the '" + format + "' format", e);
         }
-        return true;
     }
 
     private boolean lookForTimestamp(String text, Pattern pattern, LogData data) {

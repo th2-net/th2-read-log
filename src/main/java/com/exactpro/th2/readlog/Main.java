@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Comparator.comparing;
 
-public class Main extends Object {
+public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private static final ObjectMapper MAPPER = new ObjectMapper()

@@ -37,7 +37,6 @@ public class AliasConfiguration {
     private final String timestampFormat;
 
     private List<Integer> groups = Collections.emptyList();
-//    private List<SortingConfiguration> sortBy = Collections.emptyList();
 
     @JsonCreator
     public AliasConfiguration(
@@ -77,13 +76,4 @@ public class AliasConfiguration {
     public String getTimestampFormat() {
         return timestampFormat;
     }
-
-
-//    public List<SortingConfiguration> getSortBy() {
-//        return sortBy;
-//    }
-//
-//    public void setSortBy(List<SortingConfiguration> sortBy) {
-//        this.sortBy = sortBy;
-//    }
 }
