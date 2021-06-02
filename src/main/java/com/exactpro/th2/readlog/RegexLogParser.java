@@ -44,7 +44,7 @@ public class RegexLogParser {
         AliasConfiguration configuration = cfg.get(alias);
         if (configuration == null) {
             logger.error("Unknown alias {}, there no configuration", alias);
-            throw new IllegalArgumentException("Unknown alias " + alias +". No configuration found" );
+            throw new IllegalArgumentException("Unknown alias '" + alias +"'. No configuration found" );
         }
 
         LogData resultData = new LogData();
@@ -64,7 +64,7 @@ public class RegexLogParser {
         Pattern datePattern = configuration.getTimestampRegexp();
         if (datePattern != null) {
             if (!lookForTimestamp(raw, datePattern, resultData)) {
-                throw new IllegalStateException("The pattern " + datePattern.pattern() + " cannot extract the timestamp from the string: " + raw);
+                throw new IllegalStateException("The pattern '" + datePattern.pattern() + "' cannot extract the timestamp from the string: " + raw);
             }
         }
 

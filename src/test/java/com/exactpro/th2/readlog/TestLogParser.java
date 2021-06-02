@@ -23,8 +23,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestLogParser {
 
@@ -53,14 +58,29 @@ public class TestLogParser {
     void parserErrors() {
         RegexLogParser logParser = new RegexLogParser(getConfiguration());
 
-        LogData data = logParser.parse(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_FORMAT, RAW_LOG);
-        assertEquals(0, data.getBody().size());
-
-        data = logParser.parse(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_PATTERN, RAW_LOG);
-        assertEquals(0, data.getBody().size());
-
-        data = logParser.parse("wrong_alias", RAW_LOG);
-        assertEquals(0, data.getBody().size());
+        assertAll(
+                () -> {
+                    var ex = assertThrows(IllegalStateException.class,
+                            () -> logParser.parse(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_FORMAT, RAW_LOG));
+                    Assertions.assertTrue(
+                            ex.getMessage().startsWith("The timestamp '2021-03-23 13:21:37.991337479' cannot be parsed using the '123' format"),
+                            () -> "Actual error: " + ex.getMessage());
+                },
+                () -> {
+                    var ex = assertThrows(IllegalStateException.class,
+                            () -> logParser.parse(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_PATTERN, RAW_LOG));
+                    Assertions.assertTrue(
+                            ex.getMessage().startsWith("The pattern '3012.*' cannot extract the timestamp from the string"),
+                            () -> "Actual error: " + ex.getMessage());
+                },
+                () -> {
+                    var ex = assertThrows(IllegalArgumentException.class,
+                            () -> logParser.parse("wrong_alias", RAW_LOG));
+                    Assertions.assertTrue(
+                            ex.getMessage().startsWith("Unknown alias 'wrong_alias'. No configuration found"),
+                            () -> "Actual error: " + ex.getMessage());
+                }
+        );
     }
 
     private Map<String, AliasConfiguration> getConfiguration() {
