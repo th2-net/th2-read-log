@@ -17,6 +17,8 @@
 package com.exactpro.th2.readlog.cfg;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +26,8 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.lang3.StringUtils;
+
 import javax.annotation.Nullable;
 
 public class AliasConfiguration {
@@ -34,7 +38,7 @@ public class AliasConfiguration {
     private final Pattern timestampRegexp;
 
     @JsonPropertyDescription("The format which will be used to parse matched timestamp")
-    private final String timestampFormat;
+    private final DateTimeFormatter timestampFormat;
 
     private List<Integer> groups = Collections.emptyList();
 
@@ -48,7 +52,9 @@ public class AliasConfiguration {
         this.regexp = Pattern.compile(Objects.requireNonNull(regexp, "'Regexp' parameter"));
         this.pathFilter = Pattern.compile(Objects.requireNonNull(pathFilter, "'Path filter' parameter"));
         this.timestampRegexp = timestampRegexp != null ? Pattern.compile(timestampRegexp) : null;
-        this.timestampFormat = timestampFormat;
+        this.timestampFormat = StringUtils.isEmpty(timestampFormat)
+                ? null
+                : DateTimeFormatter.ofPattern(timestampFormat);
     }
 
     public Pattern getRegexp() {
@@ -73,7 +79,7 @@ public class AliasConfiguration {
     }
 
     @Nullable
-    public String getTimestampFormat() {
+    public DateTimeFormatter getTimestampFormat() {
         return timestampFormat;
     }
 }

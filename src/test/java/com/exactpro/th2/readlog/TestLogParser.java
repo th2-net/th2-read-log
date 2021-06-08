@@ -63,7 +63,7 @@ public class TestLogParser {
                     var ex = assertThrows(IllegalStateException.class,
                             () -> logParser.parse(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_FORMAT, RAW_LOG));
                     Assertions.assertTrue(
-                            ex.getMessage().startsWith("The timestamp '2021-03-23 13:21:37.991337479' cannot be parsed using the '123' format"),
+                            ex.getMessage().startsWith("The timestamp '2021-03-23 13:21:37.991337479' cannot be parsed"),
                             () -> "Actual error: " + ex.getMessage());
                 },
                 () -> {

@@ -69,23 +69,22 @@ public class RegexLogParser {
         }
 
         // DateTime from log
-        String timestampFormat = configuration.getTimestampFormat();
-        if (timestampFormat != null && !timestampFormat.isEmpty()) {
+        DateTimeFormatter timestampFormat = configuration.getTimestampFormat();
+        if (timestampFormat != null) {
             parseTimestamp(timestampFormat, resultData);
         }
 
         return resultData;
     }
 
-    private void parseTimestamp(String format, LogData data) {
+    private void parseTimestamp(DateTimeFormatter formatter, LogData data) {
         String rawTimestamp = data.getRawTimestamp();
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
             LocalDateTime dateTime = LocalDateTime.parse(rawTimestamp, formatter);
             data.setParsedTimestamp(dateTime);
             logger.trace("ParsedTimestamp: {}", dateTime);
         } catch (DateTimeException e) {
-            throw new IllegalStateException("The timestamp '" + rawTimestamp + "' cannot be parsed using the '" + format + "' format", e);
+            throw new IllegalStateException("The timestamp '" + rawTimestamp + "' cannot be parsed using the '" + formatter + "' format", e);
         }
     }
 

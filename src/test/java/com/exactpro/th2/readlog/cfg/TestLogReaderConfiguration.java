@@ -18,6 +18,7 @@ package com.exactpro.th2.readlog.cfg;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Set;
 
@@ -40,7 +41,7 @@ class TestLogReaderConfiguration {
             assertEquals(Set.of("A", "B"), cfg.getAliases().keySet());
             assertEquals(".*", Objects.requireNonNull(cfg.getAliases().get("A").getRegexp()).pattern());
             assertEquals("202.*$", Objects.requireNonNull(cfg.getAliases().get("B").getTimestampRegexp()).pattern());
-            assertEquals("yyyy.MM.dd", Objects.requireNonNull(cfg.getAliases().get("B").getTimestampFormat()));
+            assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(cfg.getAliases().get("B").getTimestampFormat()).getResolverFields());
         }
     }
 }
