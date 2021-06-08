@@ -1,0 +1,24 @@
+{
+  "logDirectory": "log/dir",
+  "aliases": {
+    "A": {
+      "regexp": ".*",
+      "pathFilter": "fileA.*\\.log"
+    },
+    "B": {
+      "regexp": ".*",
+      "pathFilter": "fileB.*\\.log",
+      "timestampRegexp": "202.*$",
+      "timestampFormat": "yyyy.MM.dd"
+    }
+  },
+  "common": {
+    "staleTimeout": "PT1S",
+    "maxBatchSize": 100,
+    "maxPublicationDelay": "PT5S",
+    "leaveLastFileOpen": false,
+    "fixTimestamp": false,
+    "maxBatchesPerSecond": 100
+  },
+  "pullingInterval": "PT5S"
+}

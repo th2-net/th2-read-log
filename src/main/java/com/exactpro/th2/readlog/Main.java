@@ -16,136 +16,220 @@
 
 package com.exactpro.th2.readlog;
 
-import static com.exactpro.th2.readlog.cfg.LogReaderConfiguration.NO_LIMIT;
-
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.MalformedInputException;
+import java.io.LineNumberReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
+import com.exactpro.th2.common.event.Event;
+import com.exactpro.th2.common.event.EventUtils;
+import com.exactpro.th2.common.grpc.Direction;
+import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
+import com.exactpro.th2.common.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.RawMessageBatch;
+import com.exactpro.th2.common.metrics.CommonMetrics;
+import com.exactpro.th2.common.schema.factory.CommonFactory;
+import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.read.file.common.AbstractFileReader;
+import com.exactpro.th2.read.file.common.DirectoryChecker;
+import com.exactpro.th2.read.file.common.FileSourceWrapper;
+import com.exactpro.th2.read.file.common.MovedFileTracker;
+import com.exactpro.th2.read.file.common.StreamId;
+import com.exactpro.th2.read.file.common.impl.DefaultFileReader;
+import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
+import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
+import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
+import com.exactpro.th2.readlog.impl.RegexpContentParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.kotlin.KotlinModule;
+import kotlin.Unit;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.exactpro.th2.common.metrics.CommonMetrics;
-import com.exactpro.th2.common.schema.factory.CommonFactory;
-import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
-import com.exactpro.th2.readlog.impl.DirectoryWatchLogReader;
-import com.exactpro.th2.readlog.impl.LogReader;
+import static java.util.Comparator.comparing;
 
-public class Main extends Object  {
+public class Main {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new KotlinModule())
+            .registerModule(new JavaTimeModule());
 
-	public static void main(String[] args) {
+    public static void main(String[] args) {
         Deque<AutoCloseable> toDispose = new ArrayDeque<>();
-        AtomicBoolean complete = new AtomicBoolean();
-
-        // Probably we should not use shutdown hook in application that does everything in the Main thread.
-        // But I believe that it will be changed soon the and reader will become multithreading-reader.
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> closeResources(toDispose, complete), "Shutdown hook"));
+        var lock = new ReentrantLock();
+        var condition = lock.newCondition();
+        configureShutdownHook(toDispose, lock, condition);
 
         CommonMetrics.setLiveness(true);
         CommonFactory commonFactory = CommonFactory.createFromArguments(args);
         toDispose.add(commonFactory);
 
-        LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class);
+        MessageRouter<RawMessageBatch> rawMessageBatchRouter = commonFactory.getMessageRouterRawBatch();
+        MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
-        LOGGER.warn("Deprecated parameter 'log-file'={}", configuration.getLogFile());
-        LOGGER.warn("Please use the second mode with 'session-alias', 'log-directory' and 'file-filter-regexp' parameters");
-        File logFile = configuration.getLogFile();
-        String sessionAlias = logFile == null
-                ? configuration.getSessionAlias()
-                : logFile.getName(); // for backward compatibility
-        LogPublisher publisher = new LogPublisher(sessionAlias, commonFactory.getMessageRouterRawBatch());
-        toDispose.add(publisher);
+        LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, MAPPER);
+        Comparator<Path> pathComparator = comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER);
+        var directoryChecker = new DirectoryChecker(
+                configuration.getLogDirectory(),
+                (Path path) -> configuration.getAliases().entrySet().stream()
+                        .filter(entry -> entry.getValue().getPathFilter().matcher(path.getFileName().toString()).matches())
+                        .map(it -> new StreamId(it.getKey(), Direction.FIRST))
+                        .collect(Collectors.toSet()),
+                files -> files.sort(pathComparator),
+                path -> true
+        );
+        RegexLogParser logParser = new RegexLogParser(configuration.getAliases());
 
+        if (configuration.getPullingInterval().isNegative()) {
+            throw new IllegalArgumentException("Pulling interval " + configuration.getPullingInterval() + " must not be negative");
+        }
 
-		RegexLogParser logParser = new RegexLogParser(configuration.getRegexp(), configuration.getRegexpGroups());
-		CommonMetrics.setReadiness(true);
+        try {
+            Event rootEvent = Event.start().endTimestamp()
+                    .name("Log reader for " + String.join(",", configuration.getAliases().keySet()))
+                    .type("Microservice");
+            var protoEvent = rootEvent.toProto(null);
+            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
+            EventID rootId = protoEvent.getId();
 
-		try {
-            ILogReader reader = logFile == null
-                    ? new DirectoryWatchLogReader(configuration.getLogDirectory(), configuration.getFileFilterRegexp())
-                    : new LogReader(logFile); // for backward compatibility
+            CommonMetrics.setReadiness(true);
+            AbstractFileReader<LineNumberReader> reader = new DefaultFileReader.Builder<>(
+                    configuration.getCommon(),
+                    directoryChecker,
+                    new RegexpContentParser(logParser),
+                    new MovedFileTracker(configuration.getLogDirectory()),
+                    new InMemoryReaderState(),
+                    Main::createSource
+            )
+                    .readFileImmediately()
+                    .acceptNewerFiles()
+                    .onStreamData((streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders))
+                    .onError((streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId))
+                    .onSourceCorrupted((streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId))
+                    .build();
+
             toDispose.add(reader);
 
-            int maxBatchesPerSecond = configuration.getMaxBatchesPerSecond();
-            boolean limited = maxBatchesPerSecond != NO_LIMIT;
-            if (limited) {
-                verifyPositive(maxBatchesPerSecond, "'maxBatchesPerSecond' must be a positive integer but was " + maxBatchesPerSecond);
-                LOGGER.info("Publication is limited to {} batch(es) per second", maxBatchesPerSecond);
-            } else {
-                LOGGER.info("Publication is unlimited");
-            }
-
-            long lastResetTime = System.currentTimeMillis();
-            int batchesPublished = 0;
-
-            while (!complete.get()) {
-                if (limited) {
-                    if (batchesPublished >= maxBatchesPerSecond) {
-                        long currentTime = System.currentTimeMillis();
-                        long timeSinceLastReset = Math.abs(currentTime - lastResetTime);
-                        if (timeSinceLastReset < 1_000) {
-                            LOGGER.debug("Suspend reading. Last time: {} mills, current time: {} mills, batches published: {}", lastResetTime, currentTime,
-                                    batchesPublished);
-                            Thread.sleep(1_000 - timeSinceLastReset);
-                            continue;
-                        }
-                        lastResetTime = currentTime;
-                        batchesPublished = 0;
-                    }
+            ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+            toDispose.add(() -> {
+                executorService.shutdown();
+                if (executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOGGER.warn("Cannot shutdown executor for 5 seconds");
+                    executorService.shutdownNow();
                 }
+            });
 
-                String line = reader.getNextLine();
 
-				if (line != null) {
-					List<String> parsedLines = logParser.parse(line);
-					for (String parsedLine: parsedLines) {
-                        if (publisher.publish(parsedLine)) {
-                            batchesPublished++;
-                        }
-					}
-				} else {
-                    // wait for file update
-                    Thread.sleep(5000);
-                    try {
-                        if (!reader.refresh()) {
-                            // nothing to read. Need to flush all data that is not published yet
-                            publisher.flush();
-                        }
-                    } catch (MalformedInputException e) {
-                        LOGGER.warn("One of lines isn't fully completed or contains illegal characters", e);
-                    }
-				}
-			}
-
-		} catch (IOException| InterruptedException e) {
-			LOGGER.error("Cannot read log file: {}", logFile, e);
-            System.exit(-1);
-		}
-	}
-
-    private static void closeResources(Deque<AutoCloseable> toDispose, AtomicBoolean complete) {
-        CommonMetrics.setReadiness(false);
-        complete.set(true);
-        toDispose.descendingIterator().forEachRemaining(resource -> {
-            try {
-                resource.close();
-            } catch (Exception e) {
-                LOGGER.error("Cannot close resource", e);
-            }
-        });
-        CommonMetrics.setLiveness(false);
-    }
-
-    private static int verifyPositive(int value, String message) {
-        if (value <= 0) {
-            throw new IllegalArgumentException(message);
+            ScheduledFuture<?> future = executorService.scheduleWithFixedDelay(reader::processUpdates, 0, configuration.getPullingInterval().toMillis(), TimeUnit.MILLISECONDS);
+            awaitShutdown(lock, condition);
+            future.cancel(true);
+        } catch (IOException | InterruptedException e) {
+            LOGGER.error("Cannot read files from: {}", configuration.getLogDirectory(), e);
         }
-        return value;
     }
+
+    @NotNull
+    private static Unit publishSourceCorruptedEvent(MessageRouter<EventBatch> eventBatchRouter, Path path, StreamId streamId, Exception e, EventID rootEventId) {
+        Event error = Event.start()
+                .name("Corrupted source " + path + " for " + streamId.getSessionAlias())
+                .type("CorruptedSource");
+        return publishError(eventBatchRouter, streamId, e, error, rootEventId);
+    }
+
+    @NotNull
+    private static Unit publishErrorEvent(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, String message, Exception ex, EventID rootEventId) {
+        Event error = Event.start().endTimestamp()
+                .name(streamId == null ? "General error" : "Error for session alias " + streamId.getSessionAlias())
+                .type("Error")
+                .bodyData(EventUtils.createMessageBean(message));
+        return publishError(eventBatchRouter, streamId, ex, error, rootEventId);
+    }
+
+    @NotNull
+    private static Unit publishError(MessageRouter<EventBatch> eventBatchRouter, StreamId streamId, Exception ex, Event error, EventID rootEventId) {
+        Throwable tmp = ex;
+        while (tmp != null) {
+            error.bodyData(EventUtils.createMessageBean(tmp.getMessage()));
+            tmp = tmp.getCause();
+        }
+        try {
+            eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(error.toProto(rootEventId)).build());
+        } catch (Exception e) {
+            LOGGER.error("Cannot send event for stream {}", streamId, e);
+        }
+        return Unit.INSTANCE;
+    }
+
+    @NotNull
+    private static Unit publishMessages(MessageRouter<RawMessageBatch> rawMessageBatchRouter, StreamId streamId, List<RawMessage.Builder> builders) {
+        try {
+            RawMessageBatch.Builder builder = RawMessageBatch.newBuilder();
+            for (RawMessage.Builder msg : builders) {
+                builder.addMessages(msg);
+            }
+            rawMessageBatchRouter.sendAll(builder.build());
+        } catch (Exception e) {
+            LOGGER.error("Cannot publish batch for {}", streamId, e);
+        }
+        return Unit.INSTANCE;
+    }
+
+    private static FileSourceWrapper<LineNumberReader> createSource(StreamId streamId, Path path) {
+        try {
+            return new RecoverableBufferedReaderWrapper(new LineNumberReader(Files.newBufferedReader(path)));
+        } catch (IOException e) {
+            return ExceptionUtils.rethrow(e);
+        }
+    }
+
+    private static void configureShutdownHook(Deque<AutoCloseable> resources, ReentrantLock lock, Condition condition) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOGGER.info("Shutdown start");
+            CommonMetrics.setReadiness(false);
+            try {
+                lock.lock();
+                condition.signalAll();
+            } finally {
+                lock.unlock();
+            }
+            resources.descendingIterator().forEachRemaining(resource -> {
+                try {
+                    resource.close();
+                } catch (Exception e) {
+                    LOGGER.error("Cannot close resource {}", resource.getClass(), e);
+                }
+            });
+
+            CommonMetrics.setLiveness(false);
+            LOGGER.info("Shutdown end");
+        }, "Shutdown hook"));
+    }
+
+    private static void awaitShutdown(ReentrantLock lock, Condition condition) throws InterruptedException {
+        try {
+            lock.lock();
+            LOGGER.info("Wait shutdown");
+            condition.await();
+            LOGGER.info("App shutdown");
+        } finally {
+            lock.unlock();
+        }
+    }
+
 }

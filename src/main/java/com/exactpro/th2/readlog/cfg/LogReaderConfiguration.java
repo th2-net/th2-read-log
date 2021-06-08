@@ -16,94 +16,59 @@
 
 package com.exactpro.th2.readlog.cfg;
 
-import java.io.File;
-import java.util.List;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 
+import com.exactpro.th2.read.file.common.cfg.CommonFileReaderConfiguration;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 public class LogReaderConfiguration {
-    public static final int NO_LIMIT = -1;
-
-    /**
-     * @deprecated use {@link #logDirectory} and {@link #fileFilterRegexp} instead
-     */
-    @JsonProperty("log-file")
-    @Deprecated(forRemoval = true)
-    private File logFile;
-
-    @JsonProperty("session-alias")
-    private String sessionAlias;
-
-    @JsonProperty("log-directory")
-    private File logDirectory;
-
-    @JsonProperty("file-filter-regexp")
-    @JsonPropertyDescription("The regexp which will be used to filter files to process from specified directory")
-    private String fileFilterRegexp;
-
     @JsonProperty(required = true)
-    private String regexp;
+    private final Path logDirectory;
 
-    @JsonProperty("regexp-groups")
-    private List<Integer> regexpGroups;
+    @JsonPropertyDescription("The regexp which will be used to filter files to process from specified directory")
+    private Map<String, AliasConfiguration> aliases = Collections.emptyMap();
 
-    @JsonProperty("max-batches-per-second")
-    private int maxBatchesPerSecond = NO_LIMIT;
+    @JsonPropertyDescription("The common part of the configuration. It is the same for all reads that uses the common core part")
+    private CommonFileReaderConfiguration common = new CommonFileReaderConfiguration();
 
-    public File getLogFile() {
-        return logFile;
+    private Duration pullingInterval = Duration.ofSeconds(5);
+
+    @JsonCreator
+    public LogReaderConfiguration(@JsonProperty("logDirectory") Path logDirectory) {
+        this.logDirectory = Objects.requireNonNull(logDirectory, "'Log directory' parameter");
     }
 
-    public void setLogFile(File logFile) {
-        this.logFile = logFile;
-    }
-
-    public String getRegexp() {
-        return regexp;
-    }
-
-    public void setRegexp(String regexp) {
-        this.regexp = regexp;
-    }
-
-    public List<Integer> getRegexpGroups() {
-        return regexpGroups;
-    }
-
-    public void setRegexpGroups(List<Integer> regexpGroups) {
-        this.regexpGroups = regexpGroups;
-    }
-
-    public int getMaxBatchesPerSecond() {
-        return maxBatchesPerSecond;
-    }
-
-    public void setMaxBatchesPerSecond(int maxBatchesPerSecond) {
-        this.maxBatchesPerSecond = maxBatchesPerSecond;
-    }
-
-    public String getSessionAlias() {
-        return sessionAlias;
-    }
-
-    public void setSessionAlias(String sessionAlias) {
-        this.sessionAlias = sessionAlias;
-    }
-
-    public File getLogDirectory() {
+    public Path getLogDirectory() {
         return logDirectory;
     }
 
-    public void setLogDirectory(File logDirectory) {
-        this.logDirectory = logDirectory;
+    public Map<String, AliasConfiguration> getAliases() {
+        return aliases;
     }
 
-    public String getFileFilterRegexp() {
-        return fileFilterRegexp;
+    public void setAliases(Map<String, AliasConfiguration> aliases) {
+        this.aliases = aliases;
     }
 
-    public void setFileFilterRegexp(String fileFilterRegexp) {
-        this.fileFilterRegexp = fileFilterRegexp;
+    public CommonFileReaderConfiguration getCommon() {
+        return common;
+    }
+
+    public void setCommon(CommonFileReaderConfiguration common) {
+        this.common = common;
+    }
+
+    public Duration getPullingInterval() {
+        return pullingInterval;
+    }
+
+    public void setPullingInterval(Duration pullingInterval) {
+        this.pullingInterval = pullingInterval;
     }
 }

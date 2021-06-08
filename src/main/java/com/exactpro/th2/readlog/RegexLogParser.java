@@ -13,56 +13,112 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.exactpro.th2.readlog;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RegexLogParser {
-	private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
-    private final Pattern pattern;
-	private final List<Integer> regexGroups;
+    private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
+    private final Map<String, AliasConfiguration> cfg;
 
-	public RegexLogParser(String regex, List<Integer> regexGroups) {
+    public RegexLogParser(Map<String, AliasConfiguration> cfg) {
+        this.cfg = Objects.requireNonNull(cfg, "'Cfg' parameter");
+        if (cfg.isEmpty()) {
+            throw new IllegalArgumentException("At least one alis must be specified");
+        }
+    }
 
-		this.regexGroups = regexGroups == null ? Collections.emptyList() : regexGroups;
-		pattern = Pattern.compile(regex);
+    public LogData parse(String alias, String raw) {
 
-		logger.info("Regex expression '{}'", regex);
-		logger.info("Regex groups to output '{}'", regexGroups);
-	}
+        AliasConfiguration configuration = cfg.get(alias);
+        if (configuration == null) {
+            logger.error("Unknown alias {}, there no configuration", alias);
+            throw new IllegalArgumentException("Unknown alias '" + alias +"'. No configuration found" );
+        }
 
-	List<String> parse (String raw) {
-		List<String> result = new ArrayList<>();
+        LogData resultData = new LogData();
+        List<Integer> regexGroups = configuration.getGroups();
+        if (regexGroups.isEmpty()) {
+            parseBody(raw, configuration.getRegexp(), resultData);
+        } else {
+            parseBody(raw, configuration.getRegexp(), regexGroups, resultData);
+        }
 
-		Matcher matcher = pattern.matcher(raw);
+        if (resultData.getBody().isEmpty()) {
+            // fast way, nothing matches the regexp so we don't need to check for date pattern
+            return resultData;
+        }
 
-		if (regexGroups.isEmpty()) {
-			while (matcher.find()) {
-				for (int i = 0; i <= matcher.groupCount(); ++i) {
-					String res = matcher.group(i); 
-					result.add(res);
-					logger.trace("ParsedLogLine: {}",res);
-				}
-			}
-		} else {
-			while (matcher.find()) {
-				for (int index : regexGroups) {
-					String res = matcher.group(index);
-					result.add(res);
-					logger.trace("ParsedLogLine: {}",res);
-				}
-			}
+        // Timestamp string from log
+        Pattern datePattern = configuration.getTimestampRegexp();
+        if (datePattern != null) {
+            if (!lookForTimestamp(raw, datePattern, resultData)) {
+                throw new IllegalStateException("The pattern '" + datePattern.pattern() + "' cannot extract the timestamp from the string: " + raw);
+            }
+        }
 
-		}
+        // DateTime from log
+        DateTimeFormatter timestampFormat = configuration.getTimestampFormat();
+        if (timestampFormat != null) {
+            parseTimestamp(timestampFormat, resultData);
+        }
 
-		return result;
-	}
+        return resultData;
+    }
+
+    private void parseTimestamp(DateTimeFormatter formatter, LogData data) {
+        String rawTimestamp = data.getRawTimestamp();
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(rawTimestamp, formatter);
+            data.setParsedTimestamp(dateTime);
+            logger.trace("ParsedTimestamp: {}", dateTime);
+        } catch (DateTimeException e) {
+            throw new IllegalStateException("The timestamp '" + rawTimestamp + "' cannot be parsed using the '" + formatter + "' format", e);
+        }
+    }
+
+    private boolean lookForTimestamp(String text, Pattern pattern, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        if (!matcher.find()) {
+            logger.error("Timestamp with regex \"{}\" was not found in the log", pattern.pattern());
+            return false;
+        }
+        String res = matcher.group(0);
+        data.setRawTimestamp(res);
+        logger.trace("Found timestamp: {}", res);
+        return true;
+    }
+
+    private void parseBody(String text, Pattern pattern, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            for (int i = 0; i <= matcher.groupCount(); ++i) {
+                String res = matcher.group(i);
+                data.addBody(res);
+                logger.trace("ParsedLogLine: {}", res);
+            }
+        }
+    }
+
+    private void parseBody(String text, Pattern pattern, List<Integer> groups, LogData data) {
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            for (int index : groups) {
+                String res = matcher.group(index);
+                data.addBody(res);
+                logger.trace("ParsedLogLine: {}", res);
+            }
+        }
+    }
 }

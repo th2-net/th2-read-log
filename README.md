@@ -1,4 +1,4 @@
-# Log Reader User Manual 1.00
+# Log Reader User Manual 3.0.0
 
 ## Document Information
 
@@ -19,15 +19,28 @@ spec:
   image-version: <image version>
   type: th2-read
   custom-config:
-  #Mode1
-    log-file: "<path to file in Kubernetes pod>"
-  #Mode2
-    session-alias: "<some_session>",
-    log-directory: "<path to folder in Kubernetes pod>",
-    file-filter-regexp: "<regexp for filename filtering>",
-  #Select one of mods
-    regexp: "<java regexp>"
-    regexp-groups: [<regexp-groups>]
+      logDirectory: "log/dir"
+      aliases:
+        A:
+          regexp: ".*",
+          pathFilter: "fileA.*\\.log"
+        B:
+          regexp: "(.*)(\\d+)(.*)",
+          pathFilter: "fileB.*\\.log"
+          groups: [ 0, 1 ]
+        C:
+          regexp: ".*",
+          pathFilter: "fileC.*\\.log"
+          timestampRegexp: "^202.+?(?= QUICK)"
+          timestampFormat: "yyyy-MM-dd HH:mm:ss"
+      common:
+        staleTimeout: "PT1S"
+        maxBatchSize: 100
+        maxPublicationDelay: "PT5S"
+        leaveLastFileOpen: false
+        fixTimestamp: false
+        maxBatchesPerSecond: -1 # unlimited
+      pullingInterval: "PT5S"
   pins:
     - name: read_log_out
       connection-type: mq
@@ -54,50 +67,22 @@ spec:
 
 ##### Reader configuration
 
-The read-log component can work in two modes.
-
-###### First mode
-The first one is reading the certain file and monitoring if it is updated. It has the following configuration:
-```json
-{
-  "log-file": "path/to/file.log",
-  "regexp": "some*regexp",
-  "regexp-groups": [0,2],
-  "max-batches-per-second": 1000
-}
-```
-
-**log-file** - specifying path where log file is located
-
-**regexp** - regular expression to parse string
-
-**regexp-groups** - specifying regex group to be sending
-
-If not specified - will send all matched groups.
-
-**max-batches-per-second** - the maximum number of batches publications per second. The default value is **-1** that means not limit.
-
-###### Second mode
-The second mode allows read-log to monitor the specified directory and read all files ordered by modification time.
-It can be used for reading logs with rotation.
-It has the following configuration (some parameters are the same as for the previous configuration):
- ```json
- {
-   "session-alias": "some_session",
-   "log-directory": "path/to/logs",
-   "file-filter-regexp": "regex_for_filtering.*\\.log",
-   "regexp": "some*regexp",
-   "regexp-groups": [0,2],
-   "max-batches-per-second": 1000
- }
- ```
-
-**session-alias** - the session alias that will be set to the raw data produced by the read-log;
-
-**log-directory** - a path to directory with log files;
-
-**file-filter-regexp** - a regular expression for filtering files to process.
-
++ logDirectory - the directory to watch files
++ aliases - the mapping between alias and files that correspond to that alias
+    + pathFilter - filter for files that correspond to that alias
+    + regexp - the regular expression to extract data from the source lines
+    + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
+    + timestampRegexp - the regular expression to extract the timestamp from the log's line.
+      If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
+      If it is set then:
+        + The extracted timestamp will be added to the message's properties.
+        + If the _timestampFormat_ specified the timestamp will be used as a message timestamp. Otherwise, the message's timestamp will be generated.
+    + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
+      If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
++ common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
+  NOTE: the fields with `Duration` type should be described in the following format `PT<number><time unit>`.
+  Supported time units (**H** - hours,**M** - minutes,**S** - seconds). E.g. PT5S - 5 seconds, PT5M - 5 minutes, PT0.001S - 1 millisecond
++ pullingInterval - how often the directory will be checked for updates after not updates is received
 
 ##### Pin declaration
 
@@ -136,3 +121,8 @@ Regex: (FixService.+)(8=FIX.+10=.+?)
 Regex group: 2 
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
+## Changes
+
+### 3.0.0
+
++ Migrate to a common read-core
