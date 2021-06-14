@@ -89,8 +89,10 @@ public class Main {
                 configuration.getLogDirectory(),
                 (Path path) -> configuration.getAliases().entrySet().stream()
                         .filter(entry -> entry.getValue().getPathFilter().matcher(path.getFileName().toString()).matches())
-                        .map(it -> new StreamId(it.getKey(), Direction.FIRST))
-                        .collect(Collectors.toSet()),
+                        .flatMap(entry -> entry.getValue().getDirectionToPattern()
+                                .keySet().stream()
+                                .map(direction -> new StreamId(entry.getKey(), direction))
+                        ).collect(Collectors.toSet()),
                 files -> files.sort(pathComparator),
                 path -> true
         );

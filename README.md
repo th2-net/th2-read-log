@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.0.0
+# Log Reader User Manual 3.1.0
 
 ## Document Information
 
@@ -22,14 +22,17 @@ spec:
       logDirectory: "log/dir"
       aliases:
         A:
-          regexp: ".*",
+          regexp: ".*"
           pathFilter: "fileA.*\\.log"
+          directionRegexps:
+            FIRST: "incoming"
+            SECOND: "outgoing"
         B:
-          regexp: "(.*)(\\d+)(.*)",
+          regexp: "(.*)(\\d+)(.*)"
           pathFilter: "fileB.*\\.log"
           groups: [ 0, 1 ]
         C:
-          regexp: ".*",
+          regexp: ".*"
           pathFilter: "fileC.*\\.log"
           timestampRegexp: "^202.+?(?= QUICK)"
           timestampFormat: "yyyy-MM-dd HH:mm:ss"
@@ -71,6 +74,7 @@ spec:
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
+    + directionRegexps - the map from direction to regexp to determine the direction for source line
     + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
     + timestampRegexp - the regular expression to extract the timestamp from the log's line.
       If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
@@ -122,6 +126,10 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 3.1.0
+
++ Added the direction regexps option for the alis configuration 
 
 ### 3.0.0
 

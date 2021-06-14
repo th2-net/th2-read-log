@@ -3,7 +3,11 @@
   "aliases": {
     "A": {
       "regexp": ".*",
-      "pathFilter": "fileA.*\\.log"
+      "pathFilter": "fileA.*\\.log",
+      "directionRegexps": {
+        "FIRST": "abc",
+        "SECOND": "cde"
+      }
     },
     "B": {
       "regexp": ".*",
