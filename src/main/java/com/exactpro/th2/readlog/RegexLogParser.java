@@ -51,8 +51,11 @@ public class RegexLogParser {
 
         LogData resultData = new LogData();
 
-        Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()), "Pattern for direction " + streamId.getDirection());
+        Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()),
+                () -> "Pattern for direction " + streamId.getDirection() + " and session " + sessionAlias);
         Matcher matcher = directionPattern.matcher(raw);
+        // check if the a string matches the direction from streamId
+        // skip line if it is not ours direction
         if (!matcher.find()) {
             return resultData;
         }

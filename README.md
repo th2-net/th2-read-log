@@ -57,7 +57,7 @@ spec:
       - path: "<destination path in Kubernetes pod>"
         pvcName: <Kubernetes persistent volume component name >
     resources:
-      # Min system requirments ...
+      # Min system requirements ...
       limits:
         memory: 200Mi
         cpu: 200m
@@ -74,7 +74,9 @@ spec:
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
-    + directionRegexps - the map from direction to regexp to determine the direction for source line
+    + directionRegexps - the map from direction to regexp to determine the direction for source line.
+      If the line does not match this pattern it will be skipped for this direction.
+      By default, all lines correspond to the FIRST direction.
     + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
     + timestampRegexp - the regular expression to extract the timestamp from the log's line.
       If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
@@ -129,7 +131,7 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 
 ### 3.1.0
 
-+ Added the direction regexps option for the alis configuration 
++ Added the direction regexps option for the alias configuration
 
 ### 3.0.0
 
