@@ -5,7 +5,7 @@
 ### Introduction
 
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
-Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
+Log reader produces **raw messages**. See **RawMessage** type in [common.proto](https://github.com/th2-net/th2-grpc-common/tree/master/src/main/proto/th2_grpc_common).
 
 ### Quick start
 General view of the component will look like this:
