@@ -5,7 +5,7 @@
 ### Introduction
 
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
-Log reader produces **raw messages**. See **RawMessage** type in infra.proto.
+Log reader produces **raw messages**. See **RawMessage** type in [common.proto](https://github.com/th2-net/th2-grpc-common/blob/master/src/main/proto/th2_grpc_common/common.proto#L84).
 
 ### Quick start
 General view of the component will look like this:
@@ -22,14 +22,14 @@ spec:
       logDirectory: "log/dir"
       aliases:
         A:
-          regexp: ".*",
+          regexp: ".*"
           pathFilter: "fileA.*\\.log"
         B:
-          regexp: "(.*)(\\d+)(.*)",
+          regexp: "(.*)(\\d+)(.*)"
           pathFilter: "fileB.*\\.log"
           groups: [ 0, 1 ]
         C:
-          regexp: ".*",
+          regexp: ".*"
           pathFilter: "fileC.*\\.log"
           timestampRegexp: "^202.+?(?= QUICK)"
           timestampFormat: "yyyy-MM-dd HH:mm:ss"
