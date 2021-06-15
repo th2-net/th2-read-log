@@ -16,11 +16,14 @@
 
 package com.exactpro.th2.readlog.cfg;
 
+import com.exactpro.th2.common.grpc.Direction;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -31,8 +34,10 @@ import org.apache.commons.lang3.StringUtils;
 import javax.annotation.Nullable;
 
 public class AliasConfiguration {
+    private static final Pattern ACCEPT_ANY = Pattern.compile(".*");
     private final Pattern regexp;
     private final Pattern pathFilter;
+    private final Map<Direction, Pattern> directionToPattern;
 
     @JsonPropertyDescription("The regexp which will be used to get timestamp from log line")
     private final Pattern timestampRegexp;
@@ -46,11 +51,21 @@ public class AliasConfiguration {
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
             @JsonProperty(value = "pathFilter", required = true) String pathFilter,
+            @JsonProperty(value = "directionRegexps") Map<Direction, String> directionRegexps,
             @JsonProperty(value = "timestampRegexp") String timestampRegexp,
             @JsonProperty(value = "timestampFormat") String timestampFormat
     ) {
         this.regexp = Pattern.compile(Objects.requireNonNull(regexp, "'Regexp' parameter"));
         this.pathFilter = Pattern.compile(Objects.requireNonNull(pathFilter, "'Path filter' parameter"));
+
+        Map<Direction, Pattern> patternByDirection = new EnumMap<>(Direction.class);
+        if (directionRegexps == null || directionRegexps.isEmpty()) {
+            patternByDirection.put(Direction.FIRST, ACCEPT_ANY);
+        } else {
+            directionRegexps.forEach((direction, directionRegexp) -> patternByDirection.put(direction,
+                    Pattern.compile(Objects.requireNonNull(directionRegexp, "'Direction regexp' parameter"))));
+        }
+        directionToPattern = Collections.unmodifiableMap(patternByDirection);
         this.timestampRegexp = timestampRegexp != null ? Pattern.compile(timestampRegexp) : null;
         this.timestampFormat = StringUtils.isEmpty(timestampFormat)
                 ? null
@@ -63,6 +78,10 @@ public class AliasConfiguration {
 
     public Pattern getPathFilter() {
         return pathFilter;
+    }
+
+    public Map<Direction, Pattern> getDirectionToPattern() {
+        return directionToPattern;
     }
 
     public List<Integer> getGroups() {

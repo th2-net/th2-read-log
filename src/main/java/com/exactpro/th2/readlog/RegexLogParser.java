@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,15 +40,26 @@ public class RegexLogParser {
         }
     }
 
-    public LogData parse(String alias, String raw) {
+    public LogData parse(StreamId streamId, String raw) {
 
-        AliasConfiguration configuration = cfg.get(alias);
+        String sessionAlias = streamId.getSessionAlias();
+        AliasConfiguration configuration = cfg.get(sessionAlias);
         if (configuration == null) {
-            logger.error("Unknown alias {}, there no configuration", alias);
-            throw new IllegalArgumentException("Unknown alias '" + alias +"'. No configuration found" );
+            logger.error("Unknown alias {}, there no configuration", sessionAlias);
+            throw new IllegalArgumentException("Unknown alias '" + sessionAlias +"'. No configuration found" );
         }
 
         LogData resultData = new LogData();
+
+        Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()),
+                () -> "Pattern for direction " + streamId.getDirection() + " and session " + sessionAlias);
+        Matcher matcher = directionPattern.matcher(raw);
+        // check if the a string matches the direction from streamId
+        // skip line if it is not ours direction
+        if (!matcher.find()) {
+            return resultData;
+        }
+
         List<Integer> regexGroups = configuration.getGroups();
         if (regexGroups.isEmpty()) {
             parseBody(raw, configuration.getRegexp(), resultData);

@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Set;
 
+import com.exactpro.th2.common.grpc.Direction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.kotlin.KotlinModule;
@@ -39,6 +40,8 @@ class TestLogReaderConfiguration {
             LogReaderConfiguration cfg = objectMapper.readValue(input, LogReaderConfiguration.class);
             assertEquals(Duration.ofSeconds(5), cfg.getPullingInterval());
             assertEquals(Set.of("A", "B"), cfg.getAliases().keySet());
+            assertEquals(Set.of(Direction.FIRST, Direction.SECOND), cfg.getAliases().get("A").getDirectionToPattern().keySet());
+            assertEquals(Set.of(Direction.FIRST), cfg.getAliases().get("B").getDirectionToPattern().keySet());
             assertEquals(".*", Objects.requireNonNull(cfg.getAliases().get("A").getRegexp()).pattern());
             assertEquals("202.*$", Objects.requireNonNull(cfg.getAliases().get("B").getTimestampRegexp()).pattern());
             assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(cfg.getAliases().get("B").getTimestampFormat()).getResolverFields());
