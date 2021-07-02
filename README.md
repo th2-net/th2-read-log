@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.1.0
+# Log Reader User Manual 3.2.0
 
 ## Document Information
 
@@ -128,6 +128,11 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 3.2.0
+
++ Add support for truncated files.
++ Use different approach for handling new data available in source
 
 ### 3.1.0
 
