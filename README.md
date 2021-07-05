@@ -7,6 +7,13 @@
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
 Log reader produces **raw messages**. See **RawMessage** type in [common.proto](https://github.com/th2-net/th2-grpc-common/tree/master/src/main/proto/th2_grpc_common).
 
+### Important information
+
+This read can be used to read the file that system writes down in real time. To achieve that the following requirements should be match:
+
++ the system must only append data to the file
++ if you synchronise the file from the remote machine to the one where the read is deployed the new data should be appended to **the same file**
+
 ### Quick start
 General view of the component will look like this:
 ```yaml
