@@ -9,7 +9,7 @@ Log reader produces **raw messages**. See **RawMessage** type in [common.proto](
 
 ### Important information
 
-This read can be used to read the file that system writes down in real time. To achieve that the following requirements should be match:
+This read can be used to read the file that system writes down in real time. To achieve that the following requirements should be matched:
 
 + the system must only append data to the file
 + if you synchronise the file from the remote machine to the one where the read is deployed the new data should be appended to **the same file**
