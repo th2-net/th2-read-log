@@ -17,6 +17,7 @@ package com.exactpro.th2.readlog;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,9 +27,7 @@ final public class LogData {
     private LocalDateTime parsedTimestamp;
 
     public void addBody(String item) {
-        if (body == null) {
-            body = new ArrayList<>();
-        }
+        initIfNeeded();
         body.add(item);
     }
 
@@ -50,5 +49,11 @@ final public class LogData {
 
     public void setParsedTimestamp(LocalDateTime localDateTime) {
         this.parsedTimestamp = localDateTime;
+    }
+
+    private void initIfNeeded() {
+        if (body == null) {
+            body = new ArrayList<>();
+        }
     }
 }

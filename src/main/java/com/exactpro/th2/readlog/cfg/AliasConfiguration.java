@@ -47,6 +47,12 @@ public class AliasConfiguration {
 
     private List<Integer> groups = Collections.emptyList();
 
+    private boolean joinGroups;
+
+    private String groupsJoinDelimiter = ",";
+
+    private Map<String, String> headersFormat = Collections.emptyMap();
+
     @JsonCreator
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
@@ -100,5 +106,32 @@ public class AliasConfiguration {
     @Nullable
     public DateTimeFormatter getTimestampFormat() {
         return timestampFormat;
+    }
+
+    public boolean isJoinGroups() {
+        return joinGroups;
+    }
+
+    public void setJoinGroups(boolean joinGroups) {
+        this.joinGroups = joinGroups;
+    }
+
+    public String getGroupsJoinDelimiter() {
+        return groupsJoinDelimiter;
+    }
+
+    public void setGroupsJoinDelimiter(String groupsJoinDelimiter) {
+        if (groupsJoinDelimiter.length() != 1) {
+            throw new IllegalArgumentException("the delimiter '" + groupsJoinDelimiter + "' must contain only one character");
+        }
+        this.groupsJoinDelimiter = groupsJoinDelimiter;
+    }
+
+    public Map<String, String> getHeadersFormat() {
+        return headersFormat;
+    }
+
+    public void setHeadersFormat(Map<String, String> headersFormat) {
+        this.headersFormat = headersFormat;
     }
 }

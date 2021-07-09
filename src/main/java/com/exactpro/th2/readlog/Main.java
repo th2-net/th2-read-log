@@ -66,9 +66,6 @@ import static java.util.Comparator.comparing;
 public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new KotlinModule())
-            .registerModule(new JavaTimeModule());
 
     public static void main(String[] args) {
         Deque<AutoCloseable> toDispose = new ArrayDeque<>();
@@ -83,7 +80,7 @@ public class Main {
         MessageRouter<RawMessageBatch> rawMessageBatchRouter = commonFactory.getMessageRouterRawBatch();
         MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
-        LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, MAPPER);
+        LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, LogReaderConfiguration.MAPPER);
         Comparator<Path> pathComparator = comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER);
         var directoryChecker = new DirectoryChecker(
                 configuration.getLogDirectory(),

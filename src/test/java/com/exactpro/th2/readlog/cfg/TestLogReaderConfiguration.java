@@ -17,27 +17,25 @@
 package com.exactpro.th2.readlog.cfg;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import com.exactpro.th2.common.grpc.Direction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.kotlin.KotlinModule;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestLogReaderConfiguration {
     @Test
     void deserializes() throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .registerModule(new KotlinModule());
-        try(var input = TestLogReaderConfiguration.class.getClassLoader().getResourceAsStream("test_cfg.json")) {
-            LogReaderConfiguration cfg = objectMapper.readValue(input, LogReaderConfiguration.class);
+        try (var input = getResourceAsStream("test_cfg.json")) {
+            LogReaderConfiguration cfg = LogReaderConfiguration.MAPPER.readValue(input, LogReaderConfiguration.class);
             assertEquals(Duration.ofSeconds(5), cfg.getPullingInterval());
             assertEquals(Set.of("A", "B"), cfg.getAliases().keySet());
             assertEquals(Set.of(Direction.FIRST, Direction.SECOND), cfg.getAliases().get("A").getDirectionToPattern().keySet());
@@ -46,5 +44,43 @@ class TestLogReaderConfiguration {
             assertEquals("202.*$", Objects.requireNonNull(cfg.getAliases().get("B").getTimestampRegexp()).pattern());
             assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(cfg.getAliases().get("B").getTimestampFormat()).getResolverFields());
         }
+    }
+
+    @Test
+    void deserializeWithJoinParams() throws IOException {
+        try (var input = getResourceAsStream("test_cfg_csv_join.json")) {
+            LogReaderConfiguration cfg = LogReaderConfiguration.MAPPER.readValue(input, LogReaderConfiguration.class);
+            assertEquals(Duration.ofSeconds(5), cfg.getPullingInterval());
+            assertEquals(Set.of("A", "B"), cfg.getAliases().keySet());
+            AliasConfiguration aliasA = cfg.getAliases().get("A");
+            assertEquals(Set.of(Direction.FIRST, Direction.SECOND), aliasA.getDirectionToPattern().keySet());
+            AliasConfiguration aliasB = cfg.getAliases().get("B");
+            assertEquals(Set.of(Direction.FIRST), aliasB.getDirectionToPattern().keySet());
+            assertEquals(".*", Objects.requireNonNull(aliasA.getRegexp()).pattern());
+            assertEquals("202.*$", Objects.requireNonNull(aliasB.getTimestampRegexp()).pattern());
+            assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(aliasB.getTimestampFormat()).getResolverFields());
+
+            assertEquals(",", aliasA.getGroupsJoinDelimiter());
+            assertEquals("\t", aliasB.getGroupsJoinDelimiter());
+
+            assertTrue(aliasA.isJoinGroups());
+            assertTrue(aliasB.isJoinGroups());
+
+            assertEquals(Map.of(
+                    "A", "foo ${0}",
+                    "B", "bar ${1}"
+            ), aliasA.getHeadersFormat());
+
+            assertEquals(Map.of(
+                    "A", "foo ${0}",
+                    "B", "bar ${1}",
+                    "C", "const"
+            ), aliasB.getHeadersFormat());
+        }
+    }
+
+    @Nullable
+    private InputStream getResourceAsStream(String name) {
+        return TestLogReaderConfiguration.class.getClassLoader().getResourceAsStream(name);
     }
 }
