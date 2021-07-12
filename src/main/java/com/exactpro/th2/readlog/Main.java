@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 
 import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.event.EventUtils;
-import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.RawMessage;
@@ -52,9 +51,6 @@ import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
 import com.exactpro.th2.readlog.impl.RegexpContentParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.kotlin.KotlinModule;
 import kotlin.Unit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;

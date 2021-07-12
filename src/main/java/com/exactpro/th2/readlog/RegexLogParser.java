@@ -20,7 +20,6 @@ import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,14 +28,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.annotation.Nullable;
-
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import com.opencsv.CSVWriter;
 import com.opencsv.ICSVWriter;
 import org.apache.commons.text.StringSubstitutor;
-import org.apache.commons.text.lookup.StringLookupFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,7 +152,7 @@ public class RegexLogParser {
                 valuesCollection = new ArrayList<>();
                 valuesCollection.add(headersFormat.keySet().stream().sorted().collect(toUnmodifiableList()));
             }
-            StringSubstitutor stringSubstitutor = createSubstituter(matcher);
+            StringSubstitutor stringSubstitutor = createSubstitutor(matcher);
             valuesCollection.add(
                     headersFormat.entrySet().stream()
                             .sorted(Map.Entry.comparingByKey())
@@ -181,7 +177,7 @@ public class RegexLogParser {
         logger.trace("Result after joining all groups: '{}'", joinedData);
     }
 
-    private StringSubstitutor createSubstituter(Matcher matcher) {
+    private StringSubstitutor createSubstitutor(Matcher matcher) {
         StringSubstitutor stringSubstitutor = new StringSubstitutor(key -> {
             Integer index = tryParse(key);
             if (index == null) {

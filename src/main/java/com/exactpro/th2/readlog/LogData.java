@@ -17,7 +17,6 @@ package com.exactpro.th2.readlog;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
