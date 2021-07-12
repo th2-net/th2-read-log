@@ -95,8 +95,8 @@ spec:
         + If the _timestampFormat_ specified the timestamp will be used as a message timestamp. Otherwise, the message's timestamp will be generated.
     + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
       If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
-    + joinGroups - enables joining groups into a message in CSV format. Can be used to extract generic data from the log.
-    + groupsJoinDelimiter - the delimiter that will be used to join groups from the _regexp_ parameter. **Works only if _joinGroups_ is enabled**
+    + joinGroups - enables joining groups into a message in CSV format. Can be used to extract generic data from the log. Disabled by default.
+    + groupsJoinDelimiter - the delimiter that will be used to join groups from the _regexp_ parameter. **Works only if _joinGroups_ is enabled**. The default value is `,`.
     + headersFormat - the headers' definition. The reader uses the keys as headers. The value to the key will be converted to a value for each match in the current line.
       You can use the following syntax to refer to the group in the regexp:
       + ${index} - reference by group index. E.g. `${1}`. Please note, that the group `0` is the whole regexp
