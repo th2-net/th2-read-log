@@ -77,6 +77,11 @@ public class Main {
         MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
         LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, LogReaderConfiguration.MAPPER);
+        configuration.getAliases().forEach((alias, cfg) -> {
+            if (cfg.isJoinGroups() && cfg.getHeadersFormat().isEmpty()) {
+                throw new IllegalArgumentException("Alias " + alias + " has parameter joinGroups = true but does not have any headers defined");
+            }
+        });
         Comparator<Path> pathComparator = comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER);
         var directoryChecker = new DirectoryChecker(
                 configuration.getLogDirectory(),
