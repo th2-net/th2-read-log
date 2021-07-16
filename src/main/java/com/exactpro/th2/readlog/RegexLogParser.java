@@ -150,13 +150,12 @@ public class RegexLogParser {
         while (matcher.find()) {
             if (valuesCollection == null) {
                 valuesCollection = new ArrayList<>();
-                valuesCollection.add(headersFormat.keySet().stream().sorted().collect(toUnmodifiableList()));
+                valuesCollection.add(headersFormat.keySet().stream().collect(toUnmodifiableList()));
             }
             StringSubstitutor stringSubstitutor = createSubstitutor(matcher);
             valuesCollection.add(
-                    headersFormat.entrySet().stream()
-                            .sorted(Map.Entry.comparingByKey())
-                            .map(it -> stringSubstitutor.replace(it.getValue()))
+                    headersFormat.values().stream()
+                            .map(stringSubstitutor::replace)
                             .collect(Collectors.toUnmodifiableList())
             );
         }

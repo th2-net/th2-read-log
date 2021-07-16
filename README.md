@@ -102,6 +102,21 @@ spec:
       + ${index} - reference by group index. E.g. `${1}`. Please note, that the group `0` is the whole regexp
       + ${groupName} - reference by group name. E.g. `${groupA}`
       + Constant values - the other data that does not match the format above will be taken as is.
+        <br/>
+        Example: you have the following line: `line for test 42 groups`. And the following regexp: `(\\S+)\\s(?<named_group>\\d+)`. It matches this: `test 42`.
+        If you specify headers like this:
+        ```yaml
+          headersFormat:
+            WholeMatch: "${0}"
+            GroupByIndex: "${1}"
+            NamedGroup: "const ${groupName}"
+            JustConst: "just const"
+        ```
+        You will get the following result:
+        ```csv
+        "GroupByIndex","JustConst","NamedGroup","WholeMatch"
+        "test","just const","42","test 42"
+        ```
 + common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
   NOTE: the fields with `Duration` type should be described in the following format `PT<number><time unit>`.
   Supported time units (**H** - hours,**M** - minutes,**S** - seconds). E.g. PT5S - 5 seconds, PT5M - 5 minutes, PT0.001S - 1 millisecond
