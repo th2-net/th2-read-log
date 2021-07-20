@@ -26,9 +26,7 @@ final public class LogData {
     private LocalDateTime parsedTimestamp;
 
     public void addBody(String item) {
-        if (body == null) {
-            body = new ArrayList<>();
-        }
+        initIfNeeded();
         body.add(item);
     }
 
@@ -50,5 +48,11 @@ final public class LogData {
 
     public void setParsedTimestamp(LocalDateTime localDateTime) {
         this.parsedTimestamp = localDateTime;
+    }
+
+    private void initIfNeeded() {
+        if (body == null) {
+            body = new ArrayList<>();
+        }
     }
 }

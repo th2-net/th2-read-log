@@ -26,8 +26,15 @@ import com.exactpro.th2.read.file.common.cfg.CommonFileReaderConfiguration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.kotlin.KotlinModule;
 
 public class LogReaderConfiguration {
+    public static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new KotlinModule())
+            .registerModule(new JavaTimeModule());
+
     @JsonProperty(required = true)
     private final Path logDirectory;
 

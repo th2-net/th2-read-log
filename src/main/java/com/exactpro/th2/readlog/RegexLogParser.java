@@ -15,19 +15,32 @@
  */
 package com.exactpro.th2.readlog;
 
+import java.io.StringWriter;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
+import com.opencsv.CSVWriter;
+import com.opencsv.ICSVWriter;
+import org.apache.commons.text.StringSubstitutor;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.opencsv.ICSVWriter.DEFAULT_ESCAPE_CHARACTER;
+import static com.opencsv.ICSVWriter.DEFAULT_LINE_END;
+import static com.opencsv.ICSVWriter.DEFAULT_QUOTE_CHARACTER;
+import static java.util.stream.Collectors.toUnmodifiableList;
 
 public class RegexLogParser {
     private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
@@ -61,8 +74,8 @@ public class RegexLogParser {
         }
 
         List<Integer> regexGroups = configuration.getGroups();
-        if (regexGroups.isEmpty()) {
-            parseBody(raw, configuration.getRegexp(), resultData);
+        if (configuration.isJoinGroups()) {
+            parseBodyJoined(raw, configuration, resultData);
         } else {
             parseBody(raw, configuration.getRegexp(), regexGroups, resultData);
         }
@@ -112,10 +125,13 @@ public class RegexLogParser {
         return true;
     }
 
-    private void parseBody(String text, Pattern pattern, LogData data) {
+    private void parseBody(String text, Pattern pattern, List<Integer> groups, LogData data) {
         Matcher matcher = pattern.matcher(text);
         while (matcher.find()) {
-            for (int i = 0; i <= matcher.groupCount(); ++i) {
+            var indexes = groups.isEmpty()
+                    ? IntStream.rangeClosed(0, matcher.groupCount()).boxed().collect(Collectors.toList())
+                    : groups;
+            for (int i : indexes) {
                 String res = matcher.group(i);
                 data.addBody(res);
                 logger.trace("ParsedLogLine: {}", res);
@@ -123,14 +139,69 @@ public class RegexLogParser {
         }
     }
 
-    private void parseBody(String text, Pattern pattern, List<Integer> groups, LogData data) {
-        Matcher matcher = pattern.matcher(text);
+    private void parseBodyJoined(String raw, AliasConfiguration configuration, LogData resultData) {
+        Pattern pattern = configuration.getRegexp();
+        Matcher matcher = pattern.matcher(raw);
+        List<List<String>> valuesCollection = null;
+        Map<String, String> headersFormat = configuration.getHeadersFormat();
+        if (headersFormat.isEmpty()) {
+            return;
+        }
         while (matcher.find()) {
-            for (int index : groups) {
-                String res = matcher.group(index);
-                data.addBody(res);
-                logger.trace("ParsedLogLine: {}", res);
+            if (valuesCollection == null) {
+                valuesCollection = new ArrayList<>();
+                valuesCollection.add(headersFormat.keySet().stream().collect(toUnmodifiableList()));
             }
+            StringSubstitutor stringSubstitutor = createSubstitutor(matcher);
+            valuesCollection.add(
+                    headersFormat.values().stream()
+                            .map(stringSubstitutor::replace)
+                            .collect(Collectors.toUnmodifiableList())
+            );
+        }
+        if (valuesCollection != null) {
+            addJoined(resultData, valuesCollection, configuration.getGroupsJoinDelimiter().charAt(0));
+        }
+    }
+
+    private void addJoined(LogData data, List<List<String>> values, char delimiter) {
+        var writer = new StringWriter();
+        ICSVWriter csvPrinter = createCsvWriter(writer, delimiter); // we can ignore closing because there is not IO
+        for (List<String> value : values) {
+            csvPrinter.writeNext(value.toArray(String[]::new));
+        }
+
+        String joinedData = writer.toString().trim();
+        data.addBody(joinedData);
+        logger.trace("Result after joining all groups: '{}'", joinedData);
+    }
+
+    private StringSubstitutor createSubstitutor(Matcher matcher) {
+        StringSubstitutor stringSubstitutor = new StringSubstitutor(key -> {
+            Integer index = tryParse(key);
+            if (index == null) {
+                return matcher.group(key);
+            } else {
+                if (index < 0) {
+                    throw new IllegalArgumentException("group index cannot be negative");
+                }
+                return matcher.group(index);
+            }
+        });
+        stringSubstitutor.setEnableUndefinedVariableException(true); // exception if key is unknown
+        return stringSubstitutor;
+    }
+
+    @NotNull
+    private ICSVWriter createCsvWriter(StringWriter writer, char delimiter) {
+        return new CSVWriter(writer, delimiter, DEFAULT_QUOTE_CHARACTER, DEFAULT_ESCAPE_CHARACTER, DEFAULT_LINE_END);
+    }
+
+    private Integer tryParse(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }
