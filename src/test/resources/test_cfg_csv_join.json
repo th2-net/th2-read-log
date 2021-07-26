@@ -1,0 +1,40 @@
+{
+  "logDirectory": "log/dir",
+  "aliases": {
+    "A": {
+      "regexp": ".*",
+      "pathFilter": "fileA.*\\.log",
+      "directionRegexps": {
+        "FIRST": "abc",
+        "SECOND": "cde"
+      },
+      "joinGroups": true,
+      "headersFormat": {
+        "A": "foo ${0}",
+        "B": "bar ${1}"
+      }
+    },
+    "B": {
+      "regexp": ".*",
+      "pathFilter": "fileB.*\\.log",
+      "timestampRegexp": "202.*$",
+      "timestampFormat": "yyyy.MM.dd",
+      "groupsJoinDelimiter": "\t",
+      "joinGroups": true,
+      "headersFormat": {
+        "A": "foo ${0}",
+        "B": "bar ${1}",
+        "C": "const"
+      }
+    }
+  },
+  "common": {
+    "staleTimeout": "PT1S",
+    "maxBatchSize": 100,
+    "maxPublicationDelay": "PT5S",
+    "leaveLastFileOpen": false,
+    "fixTimestamp": false,
+    "maxBatchesPerSecond": 100
+  },
+  "pullingInterval": "PT5S"
+}

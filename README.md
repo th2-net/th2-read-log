@@ -43,6 +43,15 @@ spec:
           pathFilter: "fileC.*\\.log"
           timestampRegexp: "^202.+?(?= QUICK)"
           timestampFormat: "yyyy-MM-dd HH:mm:ss"
+        D:
+          regexp: ".*"
+          pathFilter: "fileC.*\\.log"
+          joinGroups: true
+          groupsJoinDelimiter: "\t"
+          headersFormat:
+            HeaderA: "${0}"
+            HeaderB: "const ${groupName}"
+            HeaderC: "just const"
       common:
         staleTimeout: "PT1S"
         maxBatchSize: 100
@@ -84,7 +93,8 @@ spec:
     + directionRegexps - the map from direction to regexp to determine the direction for source line.
       If the line does not match this pattern it will be skipped for this direction.
       By default, all lines correspond to the FIRST direction.
-    + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published
+    + groups - the groups' indexes to extract from line after matching the regexp. If not specified all groups will be published.
+      **NOTE: reader ignores this parameter if _joinGroups_ is used.**
     + timestampRegexp - the regular expression to extract the timestamp from the log's line.
       If _timestampRegexp_ is **not** specified the message's timestamp will be generated automatically (no additional data is added to the message).
       If it is set then:
@@ -92,6 +102,28 @@ spec:
         + If the _timestampFormat_ specified the timestamp will be used as a message timestamp. Otherwise, the message's timestamp will be generated.
     + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
       If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
+    + joinGroups - enables joining groups into a message in CSV format. Can be used to extract generic data from the log. Disabled by default.
+    + groupsJoinDelimiter - the delimiter that will be used to join groups from the _regexp_ parameter. **Works only if _joinGroups_ is enabled**. The default value is `,`.
+    + headersFormat - the headers' definition. The reader uses the keys as headers. The value to the key will be converted to a value for each match in the current line.
+      You can use the following syntax to refer to the group in the regexp:
+      + ${index} - reference by group index. E.g. `${1}`. Please note, that the group `0` is the whole regexp
+      + ${groupName} - reference by group name. E.g. `${groupA}`
+      + Constant values - the other data that does not match the format above will be taken as is.
+        <br/>
+        Example: you have the following line: `line for test 42 groups`. And the following regexp: `(\\S+)\\s(?<named_group>\\d+)`. It matches this: `test 42`.
+        If you specify headers like this:
+        ```yaml
+          headersFormat:
+            WholeMatch: "${0}"
+            GroupByIndex: "${1}"
+            NamedGroup: "const ${groupName}"
+            JustConst: "just const"
+        ```
+        You will get the following result:
+        ```csv
+        "GroupByIndex","JustConst","NamedGroup","WholeMatch"
+        "test","just const","42","test 42"
+        ```
 + common - the common configuration for read core. Please found the description [here](https://github.com/th2-net/th2-read-file-common-core/blob/master/README.md#configuration).
   NOTE: the fields with `Duration` type should be described in the following format `PT<number><time unit>`.
   Supported time units (**H** - hours,**M** - minutes,**S** - seconds). E.g. PT5S - 5 seconds, PT5M - 5 minutes, PT0.001S - 1 millisecond
