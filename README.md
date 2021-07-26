@@ -1,3 +1,9 @@
+# This version of read-log is used for the demo ver-1.5.3-main_scenario:
+Schema example: https://github.com/th2-net/th2-infra-schema-demo/tree/ver-1.5.3-main_scenario
+  
+Box configuration: https://github.com/th2-net/th2-infra-schema-demo/blob/ver-1.5.3-main_scenario/boxes/read-log.yml
+
+Instructions to launch application as External Box: https://github.com/th2-net/th2-documentation/wiki/Connecting-external-box-to-cluster-using-kubectl
 # Log Reader User Manual 3.2.0
 
 ## Document Information

@@ -36,7 +36,7 @@ public class LogReaderConfiguration {
             .registerModule(new JavaTimeModule());
 
     @JsonProperty(required = true)
-    private final Path logDirectory;
+    private Path logDirectory;
 
     @JsonPropertyDescription("The regexp which will be used to filter files to process from specified directory")
     private Map<String, AliasConfiguration> aliases = Collections.emptyMap();
@@ -52,6 +52,7 @@ public class LogReaderConfiguration {
     }
 
     public Path getLogDirectory() {
+        logDirectory = Path.of(logDirectory.toString().replace("${user.home}", System.getProperty("user.home")));
         return logDirectory;
     }
 
