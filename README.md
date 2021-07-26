@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.2.1
+# Log Reader User Manual 3.3.0
 
 ## Document Information
 
@@ -168,9 +168,9 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 
 ## Changes
 
-### 3.2.1
+### 3.3.0
 
-+ Add support for truncated files.
++ Add support for truncated files. `allowFileTruncate` parameter in `common` configuration is added.
 
 ### 3.2.0
 
