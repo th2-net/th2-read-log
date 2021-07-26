@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.2.0
+# Log Reader User Manual 3.3.0
 
 ## Document Information
 
@@ -6,6 +6,13 @@
 
 Log reader read text log files, line by line and applying regex expression to each line. Results are sending to RabbitMQ.
 Log reader produces **raw messages**. See **RawMessage** type in [common.proto](https://github.com/th2-net/th2-grpc-common/tree/master/src/main/proto/th2_grpc_common).
+
+### Important information
+
+This read can be used to read the file that system writes down in real time. To achieve that the following requirements should be matched:
+
++ the system must only append data to the file
++ if you synchronise the file from the remote machine to the one where the read is deployed the new data should be appended to **the same file**
 
 ### Quick start
 General view of the component will look like this:
@@ -160,6 +167,14 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 3.3.0
+
++ Add support for truncated files. `allowFileTruncate` parameter in `common` configuration is added.
+
+### 3.2.0
+
++ Use different approach for handling new data available in source
 
 ### 3.1.0
 
