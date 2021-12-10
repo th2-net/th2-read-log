@@ -53,6 +53,30 @@ public class TestRegexLogParserJoining {
     }
 
     @Test
+    void doesNotTryToSubstituteInResultString() {
+        AliasConfiguration configuration = new AliasConfiguration(
+                "(] )(.*$)",
+                ".*",
+                null,
+                null,
+                null
+        );
+        configuration.setJoinGroups(true);
+        configuration.setHeadersFormat(Map.of(
+                "Header", "Group 2: ${2}"
+        ));
+        RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
+
+        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "[test] should not try to process ${3} and ${variable}");
+        List<String> body = data.getBody();
+        Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
+        Assertions.assertEquals(
+                "\"Header\"\n"
+                        + "\"Group 2: should not try to process ${3} and ${variable}\"",
+                body.get(0));
+    }
+
+    @Test
     void joinsIfManyMatchesFound() {
         AliasConfiguration configuration = new AliasConfiguration(
                 "(\\S+),\\s+(\\d+)",
