@@ -181,14 +181,14 @@ public class RegexLogParser {
             Integer index = tryParse(key);
             if (index == null) {
                 return matcher.group(key);
-            } else {
-                if (index < 0) {
-                    throw new IllegalArgumentException("group index cannot be negative");
-                }
-                return matcher.group(index);
             }
+            if (index < 0) {
+                throw new IllegalArgumentException("group index cannot be negative");
+            }
+            return matcher.group(index);
         });
         stringSubstitutor.setEnableUndefinedVariableException(true); // exception if key is unknown
+        stringSubstitutor.setDisableSubstitutionInValues(true);
         return stringSubstitutor;
     }
 
