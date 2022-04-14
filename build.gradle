@@ -43,9 +43,9 @@ repositories {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:3.0.0')
-    api 'com.exactpro.th2:common:3.16.1'
-    api 'com.exactpro.th2:read-file-common-core:1.2.2'
+    api platform('com.exactpro.th2:bom:3.1.0')
+    api 'com.exactpro.th2:common:4.0.0-th2-2150-books-pages-2115076122-SNAPSHOT'
+    api 'com.exactpro.th2:read-file-common-core:2.0.0-th2-2150-book-pages-SNAPSHOT'
 
     implementation('com.opencsv:opencsv:5.3') {
         because("we need to write a correct CSV in case of free pattern is used")

@@ -71,6 +71,7 @@ public class Main {
 
         CommonMetrics.setLiveness(true);
         CommonFactory commonFactory = CommonFactory.createFromArguments(args);
+        var boxBookName = commonFactory.getBoxConfiguration().getBookName();
         toDispose.add(commonFactory);
 
         MessageRouter<RawMessageBatch> rawMessageBatchRouter = commonFactory.getMessageRouterRawBatch();
@@ -104,7 +105,7 @@ public class Main {
             Event rootEvent = Event.start().endTimestamp()
                     .name("Log reader for " + String.join(",", configuration.getAliases().keySet()))
                     .type("Microservice");
-            var protoEvent = rootEvent.toProto(null);
+            var protoEvent = rootEvent.toProto(boxBookName);
             eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
             EventID rootId = protoEvent.getId();
 
