@@ -60,7 +60,7 @@ public class RegexpContentParser extends LineParser {
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
         if (logData.getParsedTimestamp() != null) {
-            builder.setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
+            builder.getIdBuilder().setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
         }
         if (logData.getRawTimestamp() != null) {
             builder.putProperties("logTimestamp", logData.getRawTimestamp());
