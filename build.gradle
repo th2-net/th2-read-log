@@ -44,7 +44,7 @@ repositories {
 
 dependencies {
     api platform('com.exactpro.th2:bom:3.0.0')
-    api 'com.exactpro.th2:common:3.37.1'
+    api 'com.exactpro.th2:common:3.38.0-TH2-3578-2300290805-SNAPSHOT'
     api 'com.exactpro.th2:read-file-common-core:1.2.2'
 
     implementation('com.opencsv:opencsv:5.3') {

@@ -94,7 +94,7 @@ public class Main {
                 files -> files.sort(pathComparator),
                 path -> true
         );
-        RegexLogParser logParser = new RegexLogParser(configuration.getAliases());
+        RegexLogParser logParser = new RegexLogParser(configuration.getAliases(), configuration.getDefaultAliasGroup());
 
         if (configuration.getPullingInterval().isNegative()) {
             throw new IllegalArgumentException("Pulling interval " + configuration.getPullingInterval() + " must not be negative");

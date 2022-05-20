@@ -20,10 +20,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-final public class LogData {
+import com.exactpro.th2.readlog.cfg.Group;
+
+public final class LogData {
     private List<String> body;
     private String rawTimestamp;
     private LocalDateTime parsedTimestamp;
+
+    private final Group group;
+
+    public LogData(Group group) {
+        this.group = group;
+    }
 
     public void addBody(String item) {
         initIfNeeded();
@@ -48,6 +56,10 @@ final public class LogData {
 
     public void setParsedTimestamp(LocalDateTime localDateTime) {
         this.parsedTimestamp = localDateTime;
+    }
+
+    public Group getGroup() {
+        return group;
     }
 
     private void initIfNeeded() {
