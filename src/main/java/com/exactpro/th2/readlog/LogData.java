@@ -16,6 +16,7 @@
 package com.exactpro.th2.readlog;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +25,8 @@ final public class LogData {
     private List<String> body;
     private String rawTimestamp;
     private LocalDateTime parsedTimestamp;
+
+    private ZoneId timestampZone;
 
     public void addBody(String item) {
         initIfNeeded();
@@ -48,6 +51,14 @@ final public class LogData {
 
     public void setParsedTimestamp(LocalDateTime localDateTime) {
         this.parsedTimestamp = localDateTime;
+    }
+
+    public ZoneId getTimestampZone() {
+        return timestampZone;
+    }
+
+    public void setTimestampZone(ZoneId timestampZone) {
+        this.timestampZone = timestampZone;
     }
 
     private void initIfNeeded() {

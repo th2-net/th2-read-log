@@ -19,6 +19,8 @@ package com.exactpro.th2.readlog.cfg;
 import com.exactpro.th2.common.grpc.Direction;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -54,6 +56,10 @@ public class AliasConfiguration {
 
     private Map<String, String> headersFormat = Collections.emptyMap();
 
+    @JsonPropertyDescription("Defines time zone that should be used to parse the timestamp from the log file."
+            + "It not set the time zone from the local machine will be taken")
+    private ZoneId timestampZone;
+
     @JsonCreator
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
@@ -73,7 +79,7 @@ public class AliasConfiguration {
                     Pattern.compile(Objects.requireNonNull(directionRegexp, "'Direction regexp' parameter"))));
         }
         directionToPattern = Collections.unmodifiableMap(patternByDirection);
-        this.timestampRegexp = timestampRegexp != null ? Pattern.compile(timestampRegexp) : null;
+        this.timestampRegexp = timestampRegexp == null ? null : Pattern.compile(timestampRegexp);
         this.timestampFormat = StringUtils.isEmpty(timestampFormat)
                 ? null
                 : DateTimeFormatter.ofPattern(timestampFormat);
@@ -134,5 +140,13 @@ public class AliasConfiguration {
 
     public void setHeadersFormat(Map<String, String> headersFormat) {
         this.headersFormat = new TreeMap<>(headersFormat);
+    }
+
+    public ZoneId getTimestampZone() {
+        return timestampZone;
+    }
+
+    public void setTimestampZone(ZoneOffset timestampZone) {
+        this.timestampZone = timestampZone;
     }
 }
