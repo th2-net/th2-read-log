@@ -172,7 +172,7 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 
 ### 3.4.0
 
-+ Add parameter `timestampZone` to configure the time zone for log file
++ Add parameter `timestampZone` which should be used to process the timestamp from the log file
 
 ### 3.3.3
 
