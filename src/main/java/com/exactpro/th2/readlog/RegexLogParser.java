@@ -97,6 +97,7 @@ public class RegexLogParser {
         DateTimeFormatter timestampFormat = configuration.getTimestampFormat();
         if (timestampFormat != null) {
             parseTimestamp(timestampFormat, resultData);
+            resultData.setTimestampZone(configuration.getTimestampZone());
         }
 
         return resultData;
