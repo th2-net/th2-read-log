@@ -54,6 +54,10 @@ public class AliasConfiguration {
 
     private Map<String, String> headersFormat = Collections.emptyMap();
 
+    @Nullable
+    @JsonPropertyDescription("The group name that will be used for the alias")
+    private Group aliasGroup = Group.USE_DEFAULT;
+
     @JsonCreator
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
@@ -134,5 +138,14 @@ public class AliasConfiguration {
 
     public void setHeadersFormat(Map<String, String> headersFormat) {
         this.headersFormat = new TreeMap<>(headersFormat);
+    }
+
+    @Nullable
+    public Group getAliasGroup() {
+        return aliasGroup;
+    }
+
+    public void setAliasGroup(@Nullable Group aliasGroup) {
+        this.aliasGroup = aliasGroup;
     }
 }

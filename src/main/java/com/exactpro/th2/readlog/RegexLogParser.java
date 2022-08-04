@@ -30,6 +30,7 @@ import java.util.stream.IntStream;
 
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
+import com.exactpro.th2.readlog.cfg.Group;
 import com.opencsv.CSVWriter;
 import com.opencsv.ICSVWriter;
 import org.apache.commons.text.StringSubstitutor;
@@ -45,12 +46,17 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 public class RegexLogParser {
     private static final Logger logger = LoggerFactory.getLogger(RegexLogParser.class);
     private final Map<String, AliasConfiguration> cfg;
+    private final Group defaultGroup;
 
     public RegexLogParser(Map<String, AliasConfiguration> cfg) {
+        this(cfg, null);
+    }
+    public RegexLogParser(Map<String, AliasConfiguration> cfg, Group defaultGroup) {
         this.cfg = Objects.requireNonNull(cfg, "'Cfg' parameter");
         if (cfg.isEmpty()) {
             throw new IllegalArgumentException("At least one alis must be specified");
         }
+        this.defaultGroup = defaultGroup;
     }
 
     public LogData parse(StreamId streamId, String raw) {
@@ -62,7 +68,10 @@ public class RegexLogParser {
             throw new IllegalArgumentException("Unknown alias '" + sessionAlias +"'. No configuration found" );
         }
 
-        LogData resultData = new LogData();
+        LogData resultData = new LogData(Group.isDefault(configuration.getAliasGroup())
+                ? defaultGroup
+                : configuration.getAliasGroup()
+        );
 
         Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()),
                 () -> "Pattern for direction " + streamId.getDirection() + " and session " + sessionAlias);
