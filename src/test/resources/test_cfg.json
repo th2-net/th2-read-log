@@ -13,7 +13,8 @@
       "regexp": ".*",
       "pathFilter": "fileB.*\\.log",
       "timestampRegexp": "202.*$",
-      "timestampFormat": "yyyy.MM.dd"
+      "timestampFormat": "yyyy.MM.dd",
+      "skipBefore": "2022-10-31T10:35:00Z"
     }
   },
   "common": {
