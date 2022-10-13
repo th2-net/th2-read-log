@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.4.0
+# Log Reader User Manual 3.5.0
 
 ## Document Information
 
@@ -27,6 +27,7 @@ spec:
   type: th2-read
   custom-config:
       logDirectory: "log/dir"
+      syncWithCradle: true
       aliases:
         A:
           regexp: ".*"
@@ -44,6 +45,7 @@ spec:
           timestampRegexp: "^202.+?(?= QUICK)"
           timestampFormat: "yyyy-MM-dd HH:mm:ss"
           timestampZone: UTC
+          skipBefore: "2022-10-31T12:00:00Z"
         D:
           regexp: ".*"
           pathFilter: "fileC.*\\.log"
@@ -88,6 +90,7 @@ spec:
 ##### Reader configuration
 
 + logDirectory - the directory to watch files
++ syncWithCradle - enables synchronization with Cradle for timestamps and sequences that correspond to the alias
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
@@ -104,6 +107,9 @@ spec:
     + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
       If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
     + timestampZone - the zone which should be used to process the timestamp from the log file
+    + skipBefore - the parameter defines the minimum timestamp in UTC (ISO format) for log messages.
+      If log message has timestamp less than the specified one it will be dropped.
+      **NOTE: the parameter only works if 'timestampRegexp' and 'timestampFormat' are specified**
     + joinGroups - enables joining groups into a message in CSV format. Can be used to extract generic data from the log. Disabled by default.
     + groupsJoinDelimiter - the delimiter that will be used to join groups from the _regexp_ parameter. **Works only if _joinGroups_ is enabled**. The default value is `,`.
     + headersFormat - the headers' definition. The reader uses the keys as headers. The value to the key will be converted to a value for each match in the current line.
@@ -169,6 +175,15 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 3.5.0
+
++ Update dependencies with vulnerabilities
+  + log4j 1.2 is excluded
+  + kotlin updated to 1.6.21
++ Parameter `skipBefore` for filtering log messages by timestamp from the file
++ Parameter `syncWithCradle` for timestamp and sequence synchronization with Cradle.
+  Enabled by default.
 
 ### 3.4.0
 
