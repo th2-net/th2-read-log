@@ -17,7 +17,10 @@ package com.exactpro.th2.readlog;
 
 import java.io.StringWriter;
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,17 +99,27 @@ public class RegexLogParser {
         // DateTime from log
         DateTimeFormatter timestampFormat = configuration.getTimestampFormat();
         if (timestampFormat != null) {
-            parseTimestamp(timestampFormat, resultData);
-            resultData.setTimestampZone(configuration.getTimestampZone());
+            ZoneOffset offset = Objects.requireNonNullElse(configuration.getTimestampZone(), ZoneId.systemDefault())
+                    .getRules().getOffset(Instant.now());
+            parseTimestamp(timestampFormat, resultData, offset);
+        }
+
+        if (resultData.getParsedTimestamp() != null && configuration.getSkipBefore() != null) {
+            if (resultData.getParsedTimestamp().isBefore(configuration.getSkipBefore())) {
+                logger.trace("Content dropped because of 'skipBefore' condition. Log timestamp: {}, Skip before: {}",
+                        resultData.getParsedTimestamp(), configuration.getSkipBefore()
+                );
+                return LogData.EMPTY;
+            }
         }
 
         return resultData;
     }
 
-    private void parseTimestamp(DateTimeFormatter formatter, LogData data) {
+    private void parseTimestamp(DateTimeFormatter formatter, LogData data, ZoneOffset offset) {
         String rawTimestamp = data.getRawTimestamp();
         try {
-            LocalDateTime dateTime = LocalDateTime.parse(rawTimestamp, formatter);
+            Instant dateTime = LocalDateTime.parse(rawTimestamp, formatter).toInstant(offset);
             data.setParsedTimestamp(dateTime);
             logger.trace("ParsedTimestamp: {}", dateTime);
         } catch (DateTimeException e) {

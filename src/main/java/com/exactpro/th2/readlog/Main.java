@@ -47,9 +47,11 @@ import com.exactpro.th2.read.file.common.FileSourceWrapper;
 import com.exactpro.th2.read.file.common.MovedFileTracker;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.read.file.common.impl.DefaultFileReader;
+import com.exactpro.th2.read.file.common.impl.DefaultFileReader.Builder;
 import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
+import com.exactpro.th2.readlog.impl.CradleReaderState;
 import com.exactpro.th2.readlog.impl.RegexpContentParser;
 import kotlin.Unit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -69,7 +71,7 @@ public class Main {
         var condition = lock.newCondition();
         configureShutdownHook(toDispose, lock, condition);
 
-        CommonMetrics.setLiveness(true);
+        CommonMetrics.LIVENESS_MONITOR.enable();
         CommonFactory commonFactory = CommonFactory.createFromArguments(args);
         toDispose.add(commonFactory);
 
@@ -108,13 +110,15 @@ public class Main {
             eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
             EventID rootId = protoEvent.getId();
 
-            CommonMetrics.setReadiness(true);
-            AbstractFileReader<LineNumberReader> reader = new DefaultFileReader.Builder<>(
+            CommonMetrics.READINESS_MONITOR.enable();
+            AbstractFileReader<LineNumberReader> reader = new Builder<>(
                     configuration.getCommon(),
                     directoryChecker,
                     new RegexpContentParser(logParser),
                     new MovedFileTracker(configuration.getLogDirectory()),
-                    new InMemoryReaderState(),
+                    configuration.isSyncWithCradle()
+                            ? new CradleReaderState(commonFactory.getCradleManager().getStorage())
+                            : new InMemoryReaderState(),
                     Main::createSource
             )
                     .readFileImmediately()
@@ -201,7 +205,7 @@ public class Main {
     private static void configureShutdownHook(Deque<AutoCloseable> resources, ReentrantLock lock, Condition condition) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("Shutdown start");
-            CommonMetrics.setReadiness(false);
+            CommonMetrics.READINESS_MONITOR.disable();
             try {
                 lock.lock();
                 condition.signalAll();
@@ -216,7 +220,7 @@ public class Main {
                 }
             });
 
-            CommonMetrics.setLiveness(false);
+            CommonMetrics.LIVENESS_MONITOR.disable();
             LOGGER.info("Shutdown end");
         }, "Shutdown hook"));
     }

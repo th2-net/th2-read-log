@@ -60,11 +60,7 @@ public class RegexpContentParser extends LineParser {
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
         if (logData.getParsedTimestamp() != null) {
-            ZoneOffset currentOffsetForMyZone = Objects.requireNonNullElse(
-                    logData.getTimestampZone(),
-                    ZoneId.systemDefault()
-            ).getRules().getOffset(Instant.now());
-            builder.setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp(),currentOffsetForMyZone));
+            builder.setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
         }
         if (logData.getRawTimestamp() != null) {
             builder.putProperties("logTimestamp", logData.getRawTimestamp());
