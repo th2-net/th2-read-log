@@ -89,8 +89,7 @@ public class LogReaderConfiguration {
         return syncWithCradle;
     }
 
-    public LogReaderConfiguration setSyncWithCradle(boolean syncWithCradle) {
+    public void setSyncWithCradle(boolean syncWithCradle) {
         this.syncWithCradle = syncWithCradle;
-        return this;
     }
 }
