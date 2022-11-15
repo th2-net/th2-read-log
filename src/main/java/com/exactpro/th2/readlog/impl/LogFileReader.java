@@ -16,14 +16,15 @@
 
 package com.exactpro.th2.readlog.impl;
 
-import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.read.file.common.*;
 import com.exactpro.th2.read.file.common.impl.DefaultFileReader.Builder;
 import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.ReaderState;
 import com.exactpro.th2.readlog.RegexLogParser;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
-import kotlin.Unit;
+import com.exactpro.th2.readlog.impl.lambdas.ForOnError;
+import com.exactpro.th2.readlog.impl.lambdas.ForOnSourceCorrupted;
+import com.exactpro.th2.readlog.impl.lambdas.ForOnStreamData;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
@@ -31,22 +32,9 @@ import java.io.LineNumberReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
-
-interface ForOnStreamData {
-    Unit action (StreamId id, List<RawMessage.Builder> builder);
-}
-
-interface ForOnError {
-    Unit action (StreamId id, String message, Exception ex);
-}
-
-interface ForOnSourceCorrupted {
-    Unit action (StreamId id, Path path, Exception ex);
-}
 
 public class LogFileReader {
 
