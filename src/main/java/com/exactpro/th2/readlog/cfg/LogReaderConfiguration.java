@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import com.exactpro.th2.read.file.common.cfg.CommonFileReaderConfiguration;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -51,6 +53,10 @@ public class LogReaderConfiguration {
 
     @JsonPropertyDescription("Enables synchronization information about last timestamp and sequence for stream with Cradle")
     private boolean syncWithCradle = true;
+
+    @Nullable
+    @JsonPropertyDescription("The default group that will be used for all aliases if group for alias is not overridden")
+    private Group defaultAliasGroup;
 
     @JsonCreator
     public LogReaderConfiguration(@JsonProperty("logDirectory") Path logDirectory) {
@@ -91,5 +97,14 @@ public class LogReaderConfiguration {
 
     public void setSyncWithCradle(boolean syncWithCradle) {
         this.syncWithCradle = syncWithCradle;
+    }
+
+    @Nullable
+    public Group getDefaultAliasGroup() {
+        return defaultAliasGroup;
+    }
+
+    public void setDefaultAliasGroup(@Nullable Group defaultAliasGroup) {
+        this.defaultAliasGroup = defaultAliasGroup;
     }
 }

@@ -59,6 +59,9 @@ public class RegexpContentParser extends LineParser {
     }
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
+        if (logData.getGroup() != null) {
+            builder.getIdBuilder().getConnectionIdBuilder().setSessionGroup(logData.getGroup().getName());
+        }
         if (logData.getParsedTimestamp() != null) {
             builder.setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
         }

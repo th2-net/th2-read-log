@@ -48,7 +48,7 @@ public class LogFileReader {
             return new Builder<>(
                     configuration.getCommon(),
                     getDirectoryChecker(configuration),
-                    new RegexpContentParser(new RegexLogParser(configuration.getAliases())),
+                    new RegexpContentParser(new RegexLogParser(configuration.getAliases(), configuration.getDefaultAliasGroup())),
                     new MovedFileTracker(configuration.getLogDirectory()),
                     readerState,
                     LogFileReader::createSource

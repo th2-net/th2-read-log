@@ -19,9 +19,11 @@ package com.exactpro.th2.readlog;
 import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
+import com.exactpro.th2.readlog.cfg.Group;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +39,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -44,6 +48,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 public class TestLogParser {
 
     static final String TEST_MESSAGE_ALIAS = "tma";
+    static final String TEST_MESSAGE_ALIAS_WITH_GROUP = "tmag";
     static final String TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_FORMAT = "tma_wrong_format";
     static final String TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_PATTERN = "tma_wrong_pattern";
     static final String RAW_LOG = "2021-03-23 13:21:37.991337479 QUICK.TEST INFO quicktest (Test.cpp:99) - incoming fix message fix NewOrderSingle={ AuthenticationBlock={ UserID=\"qwrqwrq\" SessionKey=123456 } Header={ MsgTime=2021-Mar-21 21:21:21.210000000 CreationTime=2021-Mar-21 21:21:21.210000000 } NewOrder={ InstrumentBlock={ InstrSymbol=\"TEST_SYMBOL\" SecurityID=\"212121\" SecurityIDSource=TestSource SecurityExchange=\"test\" }}}";
@@ -83,10 +88,27 @@ public class TestLogParser {
     void parser() {
         RegexLogParser logParser = new RegexLogParser(getConfiguration());
         LogData data = logParser.parse(new StreamId(TEST_MESSAGE_ALIAS, Direction.FIRST), RAW_LOG);
+        assertNull(data.getGroup(), () -> "group must not be set: " + data.getGroup());
         assertEquals(1, data.getBody().size());
         assertEquals("NewOrderSingle={ AuthenticationBlock={ UserID=\"qwrqwrq\" SessionKey=123456 } Header={ MsgTime=2021-Mar-21 21:21:21.210000000 CreationTime=2021-Mar-21 21:21:21.210000000 } NewOrder={ InstrumentBlock={ InstrSymbol=\"TEST_SYMBOL\" SecurityID=\"212121\" SecurityIDSource=TestSource SecurityExchange=\"test\" }}}", data.getBody().get(0));
         assertEquals("2021-03-23 13:21:37.991337479", data.getRawTimestamp());
         assertEquals(Instant.parse("2021-03-23T13:21:37.991337479Z"), data.getParsedTimestamp());
+    }
+
+    @Test
+    void setsDefaultGroup() {
+        RegexLogParser logParser = new RegexLogParser(getConfiguration(), new Group("test"));
+        LogData data = logParser.parse(new StreamId(TEST_MESSAGE_ALIAS, Direction.FIRST), RAW_LOG);
+        assertNotNull(data.getGroup(), "group must not be null");
+        assertEquals("test", data.getGroup().getName(), "unexpected group name");
+    }
+
+    @Test
+    void takesGroupFromAliasCfg() {
+        RegexLogParser logParser = new RegexLogParser(getConfiguration(), new Group("test"));
+        LogData data = logParser.parse(new StreamId(TEST_MESSAGE_ALIAS_WITH_GROUP, Direction.FIRST), RAW_LOG);
+        assertNotNull(data.getGroup(), "group must not be null");
+        assertEquals("alias_group", data.getGroup().getName(), "unexpected group name");
     }
 
     @Test
@@ -136,6 +158,12 @@ public class TestLogParser {
                 timextampRegexp, timestampFormat);
         cfg.setTimestampZone(ZoneOffset.UTC);
         result.put(TEST_MESSAGE_ALIAS, cfg);
+
+        AliasConfiguration testAlias = new AliasConfiguration(regexp, "",
+                Map.of(Direction.FIRST, "incoming", Direction.SECOND, "outgoing"),
+                timextampRegexp, timestampFormat);
+        testAlias.setAliasGroup(new Group("alias_group"));
+        result.put(TEST_MESSAGE_ALIAS_WITH_GROUP, testAlias);
         result.put(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_FORMAT, new AliasConfiguration(regexp, "", Collections.emptyMap(), timextampRegexp, "123"));
         result.put(TEST_MESSAGE_ALIAS_WRONG_TIMESTAMP_PATTERN, new AliasConfiguration(regexp, "", Collections.emptyMap(), "3012.*", timestampFormat));
 
