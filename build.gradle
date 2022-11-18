@@ -21,11 +21,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.6.21'
 }
 
-ext {
-    slf4jVersion = '2.0.3'
-    log4jVersion = '2.19.0'
-}
-
 group 'com.exactpro.th2'
 version release_version
 
@@ -48,8 +43,8 @@ repositories {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:4.0.1')
-    api 'com.exactpro.th2:common:3.42.0-dev-3477755558-SNAPSHOT'
+    api platform('com.exactpro.th2:bom:4.0.2')
+    api 'com.exactpro.th2:common:3.42.0'
     api 'com.exactpro.th2:read-file-common-core:1.5.0-dev-SNAPSHOT'
 
     implementation('com.opencsv:opencsv:5.7.0') {
@@ -60,11 +55,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
-    implementation("org.slf4j:slf4j-api:${slf4jVersion}")
-    implementation("org.apache.logging.log4j:log4j-slf4j2-impl:${log4jVersion}")
-    implementation("org.apache.logging.log4j:log4j-1.2-api:${log4jVersion}")
-    implementation("org.apache.logging.log4j:log4j-api:${log4jVersion}")
-    implementation("org.apache.logging.log4j:log4j-core:${log4jVersion}")
+    implementation "org.slf4j:slf4j-api"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
     testImplementation 'org.mockito:mockito-core:3.12.4'
