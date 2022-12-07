@@ -16,7 +16,11 @@
 
 package com.exactpro.th2.readlog.impl;
 
-import com.exactpro.th2.read.file.common.*;
+import com.exactpro.th2.read.file.common.AbstractFileReader;
+import com.exactpro.th2.read.file.common.DirectoryChecker;
+import com.exactpro.th2.read.file.common.FileSourceWrapper;
+import com.exactpro.th2.read.file.common.MovedFileTracker;
+import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.read.file.common.impl.DefaultFileReader.Builder;
 import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.ReaderState;
