@@ -18,11 +18,13 @@ package com.exactpro.th2.readlog.impl
 
 import com.exactpro.cradle.CradleStorage
 import com.exactpro.cradle.messages.StoredMessageId
+import com.exactpro.th2.common.grpc.RawMessage
 import com.exactpro.th2.common.util.toCradleDirection
 import com.exactpro.th2.read.file.common.StreamId
 import com.exactpro.th2.read.file.common.state.ReaderState
 import com.exactpro.th2.read.file.common.state.StreamData
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState
+import com.google.protobuf.ByteString
 
 class CradleReaderState private constructor(
     private val cradleStorage: CradleStorage,
@@ -45,6 +47,7 @@ class CradleReaderState private constructor(
                     StreamData(
                         timestamp,
                         index,
+                        content?.let(RawMessage::parseFrom)?.body ?: ByteString.EMPTY, // TODO: change when migrate to cradle storing only body in the content
                     )
                 }
             }
