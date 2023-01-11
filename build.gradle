@@ -19,12 +19,7 @@ plugins {
     id 'application'
     id 'com.palantir.docker' version '0.25.0'
     id 'org.jetbrains.kotlin.jvm' version '1.6.21'
-    id "org.owasp.dependencycheck" version "7.3.0"
-}
-
-dependencyCheck {
-    format='HTML'
-    failBuildOnCVSS=5
+    id "org.owasp.dependencycheck" version "7.4.4"
 }
 
 group 'com.exactpro.th2'
@@ -109,4 +104,8 @@ docker {
 
 application {
     mainClassName = "com.exactpro.th2.readlog.Main"
+}
+
+dependencyCheck {
+    formats=['SARIF']
 }
