@@ -67,6 +67,10 @@ public class AliasConfiguration {
     )
     private Instant skipBefore;
 
+    @Nullable
+    @JsonPropertyDescription("The group name that will be used for the alias")
+    private Group aliasGroup = Group.USE_DEFAULT;
+
     @JsonCreator
     public AliasConfiguration(
             @JsonProperty(value = "regexp", required = true) String regexp,
@@ -164,5 +168,14 @@ public class AliasConfiguration {
 
     public void setSkipBefore(@Nullable Instant skipBefore) {
         this.skipBefore = skipBefore;
+    }
+
+    @Nullable
+    public Group getAliasGroup() {
+        return aliasGroup;
+    }
+
+    public void setAliasGroup(@Nullable Group aliasGroup) {
+        this.aliasGroup = aliasGroup;
     }
 }

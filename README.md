@@ -91,8 +91,11 @@ spec:
 
 + logDirectory - the directory to watch files
 + syncWithCradle - enables synchronization with Cradle for timestamps and sequences that correspond to the alias
++ defaultAliasGroup - the default group that will be used for all aliases if group for alias is not overridden
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
+    + aliasGroup - the group name that will be used for the alias.
+      Use `aliasGroup: null` or empty definition like `aliasGroup:` if you don't want to use group for alias
     + regexp - the regular expression to extract data from the source lines
     + directionRegexps - the map from direction to regexp to determine the direction for source line.
       If the line does not match this pattern it will be skipped for this direction.
@@ -188,6 +191,7 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 ### 3.4.0
 
 + Add parameter `timestampZone` which should be used to process the timestamp from the log file
++ Introduce group for alias. You can specify the common group for all aliases or configure it per each alias.
 
 ### 3.3.3
 
