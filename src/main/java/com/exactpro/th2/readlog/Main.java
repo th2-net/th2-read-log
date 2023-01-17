@@ -17,6 +17,7 @@
 package com.exactpro.th2.readlog;
 
 import com.exactpro.th2.common.event.Event;
+import com.exactpro.th2.common.event.Event.Status;
 import com.exactpro.th2.common.event.EventUtils;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.EventID;
@@ -81,8 +82,10 @@ public class Main {
         try {
             Event rootEvent = Event.start().endTimestamp()
                     .name("Log reader for " + String.join(",", configuration.getAliases().keySet()))
-                    .type("Microservice");
-            var protoEvent = rootEvent.toProto(boxBookName);
+                    .type("ReadLog")
+                    .status(Status.PASSED);
+            EventID componentRootEvent = commonFactory.getRootEventId();
+            var protoEvent = rootEvent.toProto(componentRootEvent);
             eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
             EventID rootId = protoEvent.getId();
 
@@ -92,8 +95,10 @@ public class Main {
                     = LogFileReader.getLogFileReader(
                     configuration,
                     configuration.isSyncWithCradle()
-                            ? new CradleReaderState(commonFactory.getCradleManager().getStorage())
+                            ? new CradleReaderState(commonFactory.getCradleManager().getStorage(),
+                            streamId -> commonFactory.newMessageIDBuilder().getBookName())
                             : new InMemoryReaderState(),
+                    streamId -> commonFactory.newMessageIDBuilder().build(),
                     (streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders),
                     (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
                     (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)

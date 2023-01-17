@@ -16,6 +16,7 @@
 
 package com.exactpro.th2.readlog.impl;
 
+import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.read.file.common.AbstractFileReader;
 import com.exactpro.th2.read.file.common.DirectoryChecker;
 import com.exactpro.th2.read.file.common.FileSourceWrapper;
@@ -36,6 +37,7 @@ import java.io.LineNumberReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
@@ -45,6 +47,7 @@ public class LogFileReader {
     public static AbstractFileReader<LineNumberReader> getLogFileReader(
             LogReaderConfiguration configuration,
             ReaderState readerState,
+            Function<StreamId, MessageID> initialMessageId,
             ForOnStreamData forStream,
             ForOnError forError,
             ForOnSourceCorrupted forCorrupted
@@ -55,6 +58,7 @@ public class LogFileReader {
                     new RegexpContentParser(new RegexLogParser(configuration.getAliases())),
                     new MovedFileTracker(configuration.getLogDirectory()),
                     readerState,
+                    initialMessageId::apply,
                     LogFileReader::createSource
             )
                     .readFileImmediately()

@@ -16,7 +16,10 @@
 
 package com.exactpro.th2.readlog.impl
 
+import com.exactpro.cradle.BookId
 import com.exactpro.cradle.CradleStorage
+import com.exactpro.cradle.Order
+import com.exactpro.cradle.messages.MessageFilter
 import com.exactpro.cradle.messages.StoredMessageId
 import com.exactpro.th2.common.grpc.RawMessage
 import com.exactpro.th2.common.util.toCradleDirection
@@ -25,32 +28,33 @@ import com.exactpro.th2.read.file.common.state.ReaderState
 import com.exactpro.th2.read.file.common.state.StreamData
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState
 import com.google.protobuf.ByteString
+import com.google.protobuf.UnsafeByteOperations
+import java.time.Instant
 
 class CradleReaderState private constructor(
     private val cradleStorage: CradleStorage,
     private val delegate: ReaderState,
+    private val bookSupplier: (StreamId) -> String,
 ): ReaderState by delegate {
-    constructor(cradleStorage: CradleStorage) : this(cradleStorage, InMemoryReaderState())
+    constructor(cradleStorage: CradleStorage, bookSupplier: (StreamId) -> String)
+            : this(cradleStorage, InMemoryReaderState(), bookSupplier)
 
     override fun get(streamId: StreamId): StreamData? {
-        return delegate[streamId] ?: cradleStorage.getLastMessageIndex(
-            streamId.sessionAlias,
-            streamId.direction.toCradleDirection(),
-        ).let { lastSequence ->
-            when {
-                lastSequence < 0 -> null
-                else -> cradleStorage.getMessage(StoredMessageId(
-                    streamId.sessionAlias,
-                    streamId.direction.toCradleDirection(),
-                    lastSequence
-                )).run {
-                    StreamData(
-                        timestamp,
-                        index,
-                        content?.let(RawMessage::parseFrom)?.body ?: ByteString.EMPTY, // TODO: change when migrate to cradle storing only body in the content
-                    )
-                }
-            }
+        return delegate[streamId] ?: cradleStorage.getMessages(
+            MessageFilter.builder()
+                .sessionAlias(streamId.sessionAlias)
+                .direction(streamId.direction.toCradleDirection())
+                .bookId(BookId(bookSupplier(streamId)))
+                .timestampTo().isLessThanOrEqualTo(Instant.now())
+                .limit(1)
+                .order(Order.REVERSE)
+                .build()
+        ).asSequence().firstOrNull()?.run {
+            StreamData(
+                timestamp,
+                sequence,
+                content?.let(UnsafeByteOperations::unsafeWrap) ?: ByteString.EMPTY,
+            )
         }
     }
 }
