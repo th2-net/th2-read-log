@@ -178,9 +178,8 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 
 ### 4.0.0
 
-+ Updated common to 4.0.0
++ Updated common to 5.0.0
     + Migration to books-pages
-+ Updated bom to 3.1.0
 + Updated read-file-common-core to 2.0.0
 
 
