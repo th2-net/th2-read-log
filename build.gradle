@@ -46,7 +46,7 @@ repositories {
 dependencies {
     api platform('com.exactpro.th2:bom:4.1.0')
     api 'com.exactpro.th2:common:3.44.0'
-    api 'com.exactpro.th2:read-file-common-core:1.4.0-th2-4347-vulnerabilities-SNAPSHOT'
+    api 'com.exactpro.th2:read-file-common-core:1.5.1'
 
     implementation('com.opencsv:opencsv:5.7.0') {
         because("we need to write a correct CSV in case of free pattern is used")
