@@ -71,5 +71,4 @@ jobs:
         with:
           release_id: ${{ steps.create_release.outputs.id }}
   owasp-scan:
-    needs: [ build-job ]
     uses: th2-net/.github/.github/workflows/owasp-gradle-scan.yml@main
