@@ -30,10 +30,6 @@ plugins {
 group 'com.exactpro.th2'
 version release_version
 
-ext {
-    sharedDir           = file("${project.rootDir}/shared")
-}
-
 repositories {
     mavenCentral()
     maven {
@@ -136,8 +132,7 @@ tasks.withType(PublishToMavenRepository) {
                 project.hasProperty('nexus_url')) ||
                 (repository == publishing.repositories.sonatype &&
                         project.hasProperty('sonatypeUsername') &&
-                        project.hasProperty('sonatypePassword')) ||
-                (repository == publishing.repositories.localRepo)
+                        project.hasProperty('sonatypePassword'))
     }
 }
 tasks.withType(Sign) {
@@ -186,10 +181,6 @@ publishing {
         }
     }
     repositories {
-        maven {
-            name = 'localRepo'
-            url = sharedDir
-        }
 //Nexus repo to publish from gitlab
         maven {
             name = 'nexusRepository'
@@ -230,8 +221,4 @@ tasks.register('integrationTest', Test) {
     useJUnitPlatform {
         includeTags('integration-test')
     }
-}
-
-clean {
-    delete sharedDir
 }
