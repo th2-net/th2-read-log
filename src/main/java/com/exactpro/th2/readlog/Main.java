@@ -16,23 +16,8 @@
 
 package com.exactpro.th2.readlog;
 
-import java.io.IOException;
-import java.io.LineNumberReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-
 import com.exactpro.th2.common.event.Event;
+import com.exactpro.th2.common.event.Event.Status;
 import com.exactpro.th2.common.event.EventUtils;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.EventID;
@@ -42,22 +27,28 @@ import com.exactpro.th2.common.metrics.CommonMetrics;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.read.file.common.AbstractFileReader;
-import com.exactpro.th2.read.file.common.DirectoryChecker;
-import com.exactpro.th2.read.file.common.FileSourceWrapper;
-import com.exactpro.th2.read.file.common.MovedFileTracker;
 import com.exactpro.th2.read.file.common.StreamId;
-import com.exactpro.th2.read.file.common.impl.DefaultFileReader;
-import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
-import com.exactpro.th2.readlog.impl.RegexpContentParser;
+import com.exactpro.th2.readlog.impl.CradleReaderState;
+import com.exactpro.th2.readlog.impl.LogFileReader;
 import kotlin.Unit;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Comparator.comparing;
+import java.io.IOException;
+import java.io.LineNumberReader;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
 
@@ -69,8 +60,9 @@ public class Main {
         var condition = lock.newCondition();
         configureShutdownHook(toDispose, lock, condition);
 
-        CommonMetrics.setLiveness(true);
+        CommonMetrics.LIVENESS_MONITOR.enable();
         CommonFactory commonFactory = CommonFactory.createFromArguments(args);
+        var boxBookName = commonFactory.getBoxConfiguration().getBookName();
         toDispose.add(commonFactory);
 
         MessageRouter<RawMessageBatch> rawMessageBatchRouter = commonFactory.getMessageRouterRawBatch();
@@ -82,19 +74,6 @@ public class Main {
                 throw new IllegalArgumentException("Alias " + alias + " has parameter joinGroups = true but does not have any headers defined");
             }
         });
-        Comparator<Path> pathComparator = comparing(it -> it.getFileName().toString(), String.CASE_INSENSITIVE_ORDER);
-        var directoryChecker = new DirectoryChecker(
-                configuration.getLogDirectory(),
-                (Path path) -> configuration.getAliases().entrySet().stream()
-                        .filter(entry -> entry.getValue().getPathFilter().matcher(path.getFileName().toString()).matches())
-                        .flatMap(entry -> entry.getValue().getDirectionToPattern()
-                                .keySet().stream()
-                                .map(direction -> new StreamId(entry.getKey(), direction))
-                        ).collect(Collectors.toSet()),
-                files -> files.sort(pathComparator),
-                path -> true
-        );
-        RegexLogParser logParser = new RegexLogParser(configuration.getAliases());
 
         if (configuration.getPullingInterval().isNegative()) {
             throw new IllegalArgumentException("Pulling interval " + configuration.getPullingInterval() + " must not be negative");
@@ -103,26 +82,27 @@ public class Main {
         try {
             Event rootEvent = Event.start().endTimestamp()
                     .name("Log reader for " + String.join(",", configuration.getAliases().keySet()))
-                    .type("Microservice");
-            var protoEvent = rootEvent.toProto(null);
+                    .type("ReadLog")
+                    .status(Status.PASSED);
+            EventID componentRootEvent = commonFactory.getRootEventId();
+            var protoEvent = rootEvent.toProto(componentRootEvent);
             eventBatchRouter.sendAll(EventBatch.newBuilder().addEvents(protoEvent).build());
             EventID rootId = protoEvent.getId();
 
-            CommonMetrics.setReadiness(true);
-            AbstractFileReader<LineNumberReader> reader = new DefaultFileReader.Builder<>(
-                    configuration.getCommon(),
-                    directoryChecker,
-                    new RegexpContentParser(logParser),
-                    new MovedFileTracker(configuration.getLogDirectory()),
-                    new InMemoryReaderState(),
-                    Main::createSource
-            )
-                    .readFileImmediately()
-                    .acceptNewerFiles()
-                    .onStreamData((streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders))
-                    .onError((streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId))
-                    .onSourceCorrupted((streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId))
-                    .build();
+            CommonMetrics.READINESS_MONITOR.enable();
+
+            AbstractFileReader<LineNumberReader> reader
+                    = LogFileReader.getLogFileReader(
+                    configuration,
+                    configuration.isSyncWithCradle()
+                            ? new CradleReaderState(commonFactory.getCradleManager().getStorage(),
+                            streamId -> commonFactory.newMessageIDBuilder().getBookName())
+                            : new InMemoryReaderState(),
+                    streamId -> commonFactory.newMessageIDBuilder().build(),
+                    (streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders),
+                    (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
+                    (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
+                    );
 
             toDispose.add(reader);
 
@@ -190,18 +170,10 @@ public class Main {
         return Unit.INSTANCE;
     }
 
-    private static FileSourceWrapper<LineNumberReader> createSource(StreamId streamId, Path path) {
-        try {
-            return new RecoverableBufferedReaderWrapper(new LineNumberReader(Files.newBufferedReader(path)));
-        } catch (IOException e) {
-            return ExceptionUtils.rethrow(e);
-        }
-    }
-
     private static void configureShutdownHook(Deque<AutoCloseable> resources, ReentrantLock lock, Condition condition) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("Shutdown start");
-            CommonMetrics.setReadiness(false);
+            CommonMetrics.READINESS_MONITOR.disable();
             try {
                 lock.lock();
                 condition.signalAll();
@@ -216,7 +188,7 @@ public class Main {
                 }
             });
 
-            CommonMetrics.setLiveness(false);
+            CommonMetrics.LIVENESS_MONITOR.disable();
             LOGGER.info("Shutdown end");
         }, "Shutdown hook"));
     }
