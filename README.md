@@ -182,6 +182,14 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
     + Migration to books-pages
 + Updated read-file-common-core to 2.0.0
 
+### 3.5.2
+
++ Fixed release version: removed `SNAPSHOT`
+
+### 3.5.1
+
++ Fixed release workflow
+
 
 ### 3.5.0
 
@@ -191,6 +199,11 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 + Parameter `skipBefore` for filtering log messages by timestamp from the file
 + Parameter `syncWithCradle` for timestamp and sequence synchronization with Cradle.
   Enabled by default.
+
+### 3.5.0
+
++ Updated `kotlin` to 1.6.21
++ Updated `common` to 3.44.0
 
 ### 3.4.0
 

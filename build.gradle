@@ -15,10 +15,16 @@
  */
 
 plugins {
+    id 'java'
     id 'java-library'
     id 'application'
+    id 'maven-publish'
+    id 'signing'
     id 'com.palantir.docker' version '0.25.0'
     id 'org.jetbrains.kotlin.jvm' version '1.6.21'
+    id "org.owasp.dependencycheck" version "7.4.4"
+    id "io.github.gradle-nexus.publish-plugin" version "1.0.0"
+
 }
 
 group 'com.exactpro.th2'
@@ -43,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:4.0.2')
+    api platform('com.exactpro.th2:bom:4.1.0')
     api 'com.exactpro.th2:common:5.0.0-dev-version-5-3838510969-SNAPSHOT'
     api 'com.exactpro.th2:read-file-common-core:2.0.0-th2-4665-SNAPSHOT'
 
@@ -51,14 +57,17 @@ dependencies {
         because("we need to write a correct CSV in case of free pattern is used")
     }
 
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+
+    implementation "org.slf4j:slf4j-api"
+
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
-    implementation "org.slf4j:slf4j-api"
-
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
-    testImplementation 'org.mockito:mockito-core:3.12.4'
+    testImplementation 'org.mockito:mockito-core:3.6.0'
 }
 
 test {
@@ -104,4 +113,118 @@ docker {
 
 application {
     mainClass.set("com.exactpro.th2.readlog.Main")
+}
+
+dependencyCheck {
+    formats=['SARIF']
+}
+
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+// conditionals for publications
+tasks.withType(PublishToMavenRepository) {
+    onlyIf {
+        (repository == publishing.repositories.nexusRepository &&
+                project.hasProperty('nexus_user') &&
+                project.hasProperty('nexus_password') &&
+                project.hasProperty('nexus_url')) ||
+                (repository == publishing.repositories.sonatype &&
+                        project.hasProperty('sonatypeUsername') &&
+                        project.hasProperty('sonatypePassword'))
+    }
+}
+tasks.withType(Sign) {
+    onlyIf { project.hasProperty('signingKey') &&
+            project.hasProperty('signingPassword')
+    }
+}
+// disable running task 'initializeSonatypeStagingRepository' on a gitlab
+tasks.whenTaskAdded {task ->
+    if(task.name.equals('initializeSonatypeStagingRepository') &&
+            !(project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword'))
+    ) {
+        task.enabled = false
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+            pom {
+                name = rootProject.name
+                packaging = 'jar'
+                description = rootProject.description
+                url = vcs_url
+                scm {
+                    url = vcs_url
+                }
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'developer'
+                        name = 'developer'
+                        email = 'developer@exactpro.com'
+                    }
+                }
+                scm {
+                    url = vcs_url
+                }
+            }
+        }
+    }
+    repositories {
+//Nexus repo to publish from gitlab
+        maven {
+            name = 'nexusRepository'
+            credentials {
+                username = project.findProperty('nexus_user')
+                password = project.findProperty('nexus_password')
+            }
+            url = project.findProperty('nexus_url')
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+        }
+    }
+}
+
+
+signing {
+    def signingKey = findProperty("signingKey")
+    def signingPassword = findProperty("signingPassword")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.mavenJava
+}
+
+test {
+    useJUnitPlatform {
+        excludeTags('integration-test')
+    }
+}
+
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    useJUnitPlatform {
+        includeTags('integration-test')
+    }
 }
