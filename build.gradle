@@ -50,7 +50,7 @@ repositories {
 
 dependencies {
     api platform('com.exactpro.th2:bom:4.2.0')
-    api 'com.exactpro.th2:common:3.44.1'
+    api ('com.exactpro.th2:common:3.44.1')
     api 'com.exactpro.th2:read-file-common-core:1.5.1'
 
     implementation('com.opencsv:opencsv:5.7.0') {
@@ -224,5 +224,12 @@ tasks.register('integrationTest', Test) {
 }
 
 dependencyCheck {
-    formats=['SARIF']
+    formats=['SARIF', 'JSON', 'HTML']
+    failBuildOnCVSS=5
+
+    analyzers {
+        assemblyEnabled = false
+        nugetconfEnabled = false
+        nodeEnabled = false
+    }
 }
