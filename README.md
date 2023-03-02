@@ -182,6 +182,11 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
     + Migration to books-pages
 + Updated read-file-common-core to 2.0.0
 
+### 3.5.3
+
++ Updated common to 3.44.1
++ Updated bom to 4.2.0
+
 ### 3.5.2
 
 + Fixed release version: removed `SNAPSHOT`
