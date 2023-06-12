@@ -154,6 +154,54 @@ spec:
       attributes: ['raw', 'publish', 'store']
 ```
 
+##### Logging
+
+This block describes which classes can be used to get more information about read-log work.
+You can tweak their logging level and you will see extra information in the read-log logs.
+
+###### Log4j2 config
+
+Here is an example of log4j2 logging configuration that can be set in **loggingConfig** parameter for the component:
+
+```yaml
+loggingConfig: |
+  name=Th2Logger
+  # Console appender configuration
+  appender.console.type=Console
+  appender.console.name=consoleLogger
+  appender.console.layout.type=PatternLayout
+  appender.console.layout.pattern=%d{dd MMM yyyy HH:mm:ss,SSS} %-6p [%-15t] %c - %m%n
+  logger.th2.name=com.exactpro.th2
+  logger.th2.level=TRACE
+  rootLogger.level=INFO
+  rootLogger.appenderRef.stdout.ref=consoleLogger
+```
+
+If you need to add extra logging you can do it by adding a line in the following format:
+```properties
+logger.<logger_name>.name=<full_class_name>
+logger.<logger_name>.level=<level>
+```
+
+**NOTE: the _logger_name_ must be unique**.
+
+###### Classes
+
+**com.exactpro.th2.readlog.RegexLogParser**
+
+You can use this class to see how the log line is parsed by the read-log.
+Use TRACE level to get the information.
+
+**com.exactpro.th2.readlog.impl.RegexpContentParser**
+
+You can use this class to see the resulted lines produced by **_RegexLogParser_**.
+Use TRACE level to get the information.
+
+**com.exactpro.th2.read.file.common.AbstractFileReader**
+
+You can use this class to get information about how the reader processes files.
+Use either DEBUG or TRACE level
+
 ### Examples
 
 #### Example 1
