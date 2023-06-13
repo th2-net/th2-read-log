@@ -25,12 +25,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import com.opencsv.CSVWriter;
@@ -65,16 +67,21 @@ public class RegexLogParser {
             throw new IllegalArgumentException("Unknown alias '" + sessionAlias +"'. No configuration found" );
         }
 
-        LogData resultData = new LogData();
-
-        Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()),
-                () -> "Pattern for direction " + streamId.getDirection() + " and session " + sessionAlias);
-        Matcher matcher = directionPattern.matcher(raw);
-        // check if the a string matches the direction from streamId
-        // skip line if it is not ours direction
-        if (!matcher.find()) {
-            return resultData;
+        Direction direction = null;
+        for (Entry<Direction, Pattern> entry : configuration.getDirectionToPattern().entrySet()) {
+            if (entry.getValue().matcher(raw).find()) {
+                direction = entry.getKey();
+                break;
+            }
         }
+        // check whether the line matches any direction regex
+        // if not it is not our line
+        if (direction == null) {
+            return LogData.EMPTY;
+        }
+
+        LogData resultData = new LogData();
+        resultData.setDirection(direction);
 
         List<Integer> regexGroups = configuration.getGroups();
         if (configuration.isJoinGroups()) {

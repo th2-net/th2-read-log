@@ -19,6 +19,7 @@ package com.exactpro.th2.readlog.impl
 import com.exactpro.cradle.BookId
 import com.exactpro.cradle.CradleStorage
 import com.exactpro.cradle.Order
+import com.exactpro.cradle.messages.GroupedMessageFilter
 import com.exactpro.cradle.messages.MessageFilter
 import com.exactpro.cradle.messages.StoredMessageId
 import com.exactpro.th2.common.grpc.RawMessage
@@ -30,6 +31,7 @@ import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState
 import com.google.protobuf.ByteString
 import com.google.protobuf.UnsafeByteOperations
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class CradleReaderState private constructor(
     private val cradleStorage: CradleStorage,
@@ -40,16 +42,15 @@ class CradleReaderState private constructor(
             : this(cradleStorage, InMemoryReaderState(), bookSupplier)
 
     override fun get(streamId: StreamId): StreamData? {
-        return delegate[streamId] ?: cradleStorage.getMessages(
-            MessageFilter.builder()
-                .sessionAlias(streamId.sessionAlias)
-                .direction(streamId.direction.toCradleDirection())
+        return delegate[streamId] ?: cradleStorage.getGroupedMessageBatches(
+            GroupedMessageFilter.builder()
+                .groupName(streamId.sessionAlias)
                 .bookId(BookId(bookSupplier(streamId)))
                 .timestampTo().isLessThanOrEqualTo(Instant.now())
                 .limit(1)
                 .order(Order.REVERSE)
                 .build()
-        ).asSequence().firstOrNull()?.run {
+        ).asSequence().firstOrNull()?.lastMessage?.run {
             StreamData(
                 timestamp,
                 sequence,

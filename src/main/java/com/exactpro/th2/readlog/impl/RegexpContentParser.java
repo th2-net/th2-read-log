@@ -37,12 +37,14 @@ import com.exactpro.th2.readlog.RegexLogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Objects.requireNonNull;
+
 public class RegexpContentParser extends LineParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegexpContentParser.class);
     private final RegexLogParser parser;
 
     public RegexpContentParser(RegexLogParser parser) {
-        this.parser = Objects.requireNonNull(parser, "'Parser' parameter");
+        this.parser = requireNonNull(parser, "'Parser' parameter");
     }
 
     @Nonnull
@@ -59,6 +61,8 @@ public class RegexpContentParser extends LineParser {
     }
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
+        builder.getIdBuilder().setDirection(requireNonNull(logData.getDirection(),
+                "direction is not set"));
         if (logData.getParsedTimestamp() != null) {
             builder.getIdBuilder().setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
         }

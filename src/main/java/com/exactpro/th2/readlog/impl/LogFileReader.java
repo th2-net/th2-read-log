@@ -76,10 +76,8 @@ public class LogFileReader {
                 configuration.getLogDirectory(),
                 (Path path) -> configuration.getAliases().entrySet().stream()
                         .filter(entry -> entry.getValue().getPathFilter().matcher(path.getFileName().toString()).matches())
-                        .flatMap(entry -> entry.getValue().getDirectionToPattern()
-                                .keySet().stream()
-                                .map(direction -> new StreamId(entry.getKey(), direction))
-                        ).collect(Collectors.toSet()),
+                        .map(entry -> new StreamId(entry.getKey()))
+                        .collect(Collectors.toSet()),
                 files -> files.sort(pathComparator),
                 path -> true
         );

@@ -15,6 +15,8 @@
  */
 package com.exactpro.th2.readlog;
 
+import com.exactpro.th2.common.grpc.Direction;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -27,6 +29,7 @@ public final class LogData {
     private List<String> body;
     private String rawTimestamp;
     private Instant parsedTimestamp;
+    private Direction direction;
 
     public LogData() {
         this(null);
@@ -59,6 +62,14 @@ public final class LogData {
 
     public void setParsedTimestamp(Instant localDateTime) {
         this.parsedTimestamp = localDateTime;
+    }
+
+    public Direction getDirection() {
+        return direction;
+    }
+
+    public void setDirection(Direction direction) {
+        this.direction = direction;
     }
 
     private void initIfNeeded() {
