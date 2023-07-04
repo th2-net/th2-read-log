@@ -55,9 +55,6 @@ public class LogReaderConfiguration {
     @JsonPropertyDescription("Enables using th2 transport protocol")
     private boolean useTransport = false;
 
-    @JsonPropertyDescription("Session group for outgoing messages")
-    private String sessionGroup;
-
     @JsonCreator
     public LogReaderConfiguration(@JsonProperty("logDirectory") Path logDirectory) {
         this.logDirectory = Objects.requireNonNull(logDirectory, "'Log directory' parameter");
@@ -105,13 +102,5 @@ public class LogReaderConfiguration {
 
     public boolean isUseTransport() {
         return useTransport;
-    }
-
-    public String getSessionGroup() {
-        return sessionGroup;
-    }
-
-    public void setSessionGroup(String sessionGroup) {
-        this.sessionGroup = sessionGroup;
     }
 }

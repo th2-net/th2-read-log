@@ -72,7 +72,6 @@ public class Main {
         MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
         LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, LogReaderConfiguration.MAPPER);
-        var sessionGroup = configuration.getSessionGroup();
         configuration.getAliases().forEach((alias, cfg) -> {
             if (cfg.isJoinGroups() && cfg.getHeadersFormat().isEmpty()) {
                 throw new IllegalArgumentException("Alias " + alias + " has parameter joinGroups = true but does not have any headers defined");
@@ -106,7 +105,7 @@ public class Main {
                                 streamId -> commonFactory.newMessageIDBuilder().getBookName())
                                 : new InMemoryReaderState(),
                         streamId -> MessageId.builder(),
-                        (streamId, builders) -> publishTransportMessages(commonFactory.getTransportGroupBatchRouter(), streamId, builders, boxBookName, sessionGroup),
+                        (streamId, builders) -> publishTransportMessages(commonFactory.getTransportGroupBatchRouter(), streamId, builders, boxBookName),
                         (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
                         (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
                 );
@@ -120,7 +119,7 @@ public class Main {
                         configuration.isSyncWithCradle()
                                 ? new CradleReaderState(commonFactory.getCradleManager().getStorage(), streamId -> boxBookName)
                                 : new InMemoryReaderState(),
-                        streamId -> commonFactory.newMessageIDBuilder().setConnectionId(ConnectionID.newBuilder().setSessionGroup(sessionGroup)).build(),
+                        streamId -> commonFactory.newMessageIDBuilder().build(),
                         (streamId, builders) -> publishProtoMessages(commonFactory.getMessageRouterRawBatch(), streamId, builders),
                         (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
                         (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
@@ -194,14 +193,17 @@ public class Main {
     }
 
     @NotNull
-    private static Unit publishTransportMessages(MessageRouter<GroupBatch> rawMessageBatchRouter, StreamId streamId, List<? extends RawMessage.Builder> builders, String bookName, String groupName) {
+    private static Unit publishTransportMessages(MessageRouter<GroupBatch> rawMessageBatchRouter, StreamId streamId, List<? extends RawMessage.Builder> builders, String bookName) {
         try {
+            // messages are grouped by session aliases
+            String sessionGroup = builders.get(0).idBuilder().getSessionAlias();
+
             List<MessageGroup> groups = new ArrayList<>(builders.size());
             for (RawMessage.Builder msgBuilder : builders) {
                 groups.add(new MessageGroup(List.of(msgBuilder.build())));
             }
 
-            var batch = new GroupBatch(bookName, groupName, groups);
+            var batch = new GroupBatch(bookName, sessionGroup, groups);
             rawMessageBatchRouter.sendAll(batch, "transport-group");
         } catch (Exception e) {
             LOGGER.error("Cannot publish batch for {}", streamId, e);
