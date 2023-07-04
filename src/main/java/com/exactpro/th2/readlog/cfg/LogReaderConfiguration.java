@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,12 @@ public class LogReaderConfiguration {
     @JsonPropertyDescription("Enables synchronization information about last timestamp and sequence for stream with Cradle")
     private boolean syncWithCradle = true;
 
+    @JsonPropertyDescription("Enables using th2 transport protocol")
+    private boolean useTransport = false;
+
+    @JsonPropertyDescription("Session group for outgoing messages")
+    private String sessionGroup;
+
     @JsonCreator
     public LogReaderConfiguration(@JsonProperty("logDirectory") Path logDirectory) {
         this.logDirectory = Objects.requireNonNull(logDirectory, "'Log directory' parameter");
@@ -91,5 +97,21 @@ public class LogReaderConfiguration {
 
     public void setSyncWithCradle(boolean syncWithCradle) {
         this.syncWithCradle = syncWithCradle;
+    }
+
+    public void setUseTransport(boolean useTransport) {
+        this.useTransport = useTransport;
+    }
+
+    public boolean isUseTransport() {
+        return useTransport;
+    }
+
+    public String getSessionGroup() {
+        return sessionGroup;
+    }
+
+    public void setSessionGroup(String sessionGroup) {
+        this.sessionGroup = sessionGroup;
     }
 }

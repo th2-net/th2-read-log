@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.readlog.impl;
 
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.TransportUtilsKt;
 import com.exactpro.th2.common.message.MessageUtils;
+import com.exactpro.th2.read.file.common.impl.ProtoLineParser;
 import com.exactpro.th2.readlog.LogData;
 import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Objects;
-
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.read.file.common.StreamId;
-import com.exactpro.th2.read.file.common.impl.LineParser;
 import com.exactpro.th2.readlog.RegexLogParser;
 
 import org.slf4j.Logger;
@@ -39,11 +36,11 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
-public class RegexpContentParser extends LineParser {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RegexpContentParser.class);
+public class ProtoRegexpContentParser extends ProtoLineParser {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProtoRegexpContentParser.class);
     private final RegexLogParser parser;
 
-    public RegexpContentParser(RegexLogParser parser) {
+    public ProtoRegexpContentParser(RegexLogParser parser) {
         this.parser = requireNonNull(parser, "'Parser' parameter");
     }
 
@@ -61,8 +58,8 @@ public class RegexpContentParser extends LineParser {
     }
 
     private void setupMetadata(RawMessageMetadata.Builder builder, LogData logData) {
-        builder.getIdBuilder().setDirection(requireNonNull(logData.getDirection(),
-                "direction is not set"));
+        builder.getIdBuilder().setDirection(TransportUtilsKt.getProto(requireNonNull(logData.getDirection(),
+                "direction is not set")));
         if (logData.getParsedTimestamp() != null) {
             builder.getIdBuilder().setTimestamp(MessageUtils.toTimestamp(logData.getParsedTimestamp()));
         }
@@ -70,5 +67,4 @@ public class RegexpContentParser extends LineParser {
             builder.putProperties("logTimestamp", logData.getRawTimestamp());
         }
     }
-
 }

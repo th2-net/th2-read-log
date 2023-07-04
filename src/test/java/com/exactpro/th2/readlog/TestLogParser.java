@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.exactpro.th2.readlog;
 
 import com.exactpro.th2.common.grpc.Direction;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.TransportUtilsKt;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 
@@ -38,7 +39,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class TestLogParser {
@@ -68,7 +68,7 @@ public class TestLogParser {
 
         LogData data = parser.parse(new StreamId("test"), "2021-03-23 13:21:37.991337479 some data");
         if (hasMessages) {
-            assertEquals(Direction.FIRST, data.getDirection(), "unexpected direction");
+            assertEquals(Direction.FIRST, TransportUtilsKt.getProto(data.getDirection()), "unexpected direction");
         }
         assertEquals(hasMessages, !data.getBody().isEmpty(), () -> "unexpected data " + data.getBody());
         if (hasMessages) {
@@ -88,7 +88,7 @@ public class TestLogParser {
     void parser(Direction direction) {
         RegexLogParser logParser = new RegexLogParser(getConfiguration());
         LogData data = logParser.parse(new StreamId(TEST_MESSAGE_ALIAS), direction == Direction.FIRST ? RAW_LOG_IN : RAW_LOG_OUT);
-        assertEquals(direction, data.getDirection(), "unexpected direction");
+        assertEquals(direction, TransportUtilsKt.getProto(data.getDirection()), "unexpected direction");
         assertEquals(1, data.getBody().size());
         assertEquals("NewOrderSingle={ AuthenticationBlock={ UserID=\"qwrqwrq\" SessionKey=123456 } Header={ MsgTime=2021-Mar-21 21:21:21.210000000 CreationTime=2021-Mar-21 21:21:21.210000000 } NewOrder={ InstrumentBlock={ InstrSymbol=\"TEST_SYMBOL\" SecurityID=\"212121\" SecurityIDSource=TestSource SecurityExchange=\"test\" }}}", data.getBody().get(0));
         assertEquals("2021-03-23 13:21:37.991337479", data.getRawTimestamp());

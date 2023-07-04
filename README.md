@@ -1,4 +1,4 @@
-# Log Reader User Manual 4.0.1
+# Log Reader User Manual 4.1.0
 
 ## Document Information
 
@@ -192,7 +192,7 @@ logger.<logger_name>.level=<level>
 You can use this class to see how the log line is parsed by the read-log.
 Use TRACE level to get the information.
 
-**com.exactpro.th2.readlog.impl.RegexpContentParser**
+**com.exactpro.th2.readlog.impl.ProtoRegexpContentParser**
 
 You can use this class to see the resulted lines produced by **_RegexLogParser_**.
 Use TRACE level to get the information.
@@ -223,6 +223,10 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 4.1.0
+
++ Added support for th2 transport protocol
 
 ### 4.0.1
 

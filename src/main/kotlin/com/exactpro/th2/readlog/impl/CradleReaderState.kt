@@ -1,5 +1,5 @@
 /*
- * Copyright 2022. Exactpro (Exactpro Systems Limited)
+ * Copyright 2022-2023. Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,6 @@ import com.exactpro.cradle.BookId
 import com.exactpro.cradle.CradleStorage
 import com.exactpro.cradle.Order
 import com.exactpro.cradle.messages.GroupedMessageFilter
-import com.exactpro.cradle.messages.MessageFilter
-import com.exactpro.cradle.messages.StoredMessageId
-import com.exactpro.th2.common.grpc.RawMessage
-import com.exactpro.th2.common.util.toCradleDirection
 import com.exactpro.th2.read.file.common.StreamId
 import com.exactpro.th2.read.file.common.state.ReaderState
 import com.exactpro.th2.read.file.common.state.StreamData
@@ -31,7 +27,6 @@ import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState
 import com.google.protobuf.ByteString
 import com.google.protobuf.UnsafeByteOperations
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 class CradleReaderState private constructor(
     private val cradleStorage: CradleStorage,

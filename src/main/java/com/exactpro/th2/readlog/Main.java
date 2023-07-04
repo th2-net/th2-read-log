@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,16 @@ package com.exactpro.th2.readlog;
 import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.event.Event.Status;
 import com.exactpro.th2.common.event.EventUtils;
+import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.EventID;
-import com.exactpro.th2.common.grpc.RawMessage;
-import com.exactpro.th2.common.grpc.RawMessageBatch;
 import com.exactpro.th2.common.metrics.CommonMetrics;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.GroupBatch;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.MessageGroup;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.MessageId;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.RawMessage;
 import com.exactpro.th2.read.file.common.AbstractFileReader;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
@@ -41,6 +44,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -65,10 +69,10 @@ public class Main {
         var boxBookName = commonFactory.getBoxConfiguration().getBookName();
         toDispose.add(commonFactory);
 
-        MessageRouter<RawMessageBatch> rawMessageBatchRouter = commonFactory.getMessageRouterRawBatch();
         MessageRouter<EventBatch> eventBatchRouter = commonFactory.getEventBatchRouter();
 
         LogReaderConfiguration configuration = commonFactory.getCustomConfiguration(LogReaderConfiguration.class, LogReaderConfiguration.MAPPER);
+        var sessionGroup = configuration.getSessionGroup();
         configuration.getAliases().forEach((alias, cfg) -> {
             if (cfg.isJoinGroups() && cfg.getHeadersFormat().isEmpty()) {
                 throw new IllegalArgumentException("Alias " + alias + " has parameter joinGroups = true but does not have any headers defined");
@@ -91,20 +95,40 @@ public class Main {
 
             CommonMetrics.READINESS_MONITOR.enable();
 
-            AbstractFileReader<LineNumberReader> reader
-                    = LogFileReader.getLogFileReader(
-                    configuration,
-                    configuration.isSyncWithCradle()
-                            ? new CradleReaderState(commonFactory.getCradleManager().getStorage(),
-                            streamId -> commonFactory.newMessageIDBuilder().getBookName())
-                            : new InMemoryReaderState(),
-                    streamId -> commonFactory.newMessageIDBuilder().build(),
-                    (streamId, builders) -> publishMessages(rawMessageBatchRouter, streamId, builders),
-                    (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
-                    (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
-                    );
+            final Runnable processUpdates;
 
-            toDispose.add(reader);
+            if (configuration.isUseTransport()) {
+                AbstractFileReader<LineNumberReader, RawMessage.Builder, MessageId.Builder> reader
+                        = LogFileReader.getTransportLogFileReader(
+                        configuration,
+                        configuration.isSyncWithCradle()
+                                ? new CradleReaderState(commonFactory.getCradleManager().getStorage(),
+                                streamId -> commonFactory.newMessageIDBuilder().getBookName())
+                                : new InMemoryReaderState(),
+                        streamId -> MessageId.builder(),
+                        (streamId, builders) -> publishTransportMessages(commonFactory.getTransportGroupBatchRouter(), streamId, builders, boxBookName, sessionGroup),
+                        (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
+                        (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
+                );
+
+                processUpdates = reader::processUpdates;
+                toDispose.add(reader);
+            } else {
+                AbstractFileReader<LineNumberReader,com.exactpro.th2.common.grpc.RawMessage.Builder, com.exactpro.th2.common.grpc.MessageID> reader
+                        = LogFileReader.getProtoLogFileReader(
+                        configuration,
+                        configuration.isSyncWithCradle()
+                                ? new CradleReaderState(commonFactory.getCradleManager().getStorage(), streamId -> boxBookName)
+                                : new InMemoryReaderState(),
+                        streamId -> commonFactory.newMessageIDBuilder().setConnectionId(ConnectionID.newBuilder().setSessionGroup(sessionGroup)).build(),
+                        (streamId, builders) -> publishProtoMessages(commonFactory.getMessageRouterRawBatch(), streamId, builders),
+                        (streamId, message, ex) -> publishErrorEvent(eventBatchRouter, streamId, message, ex, rootId),
+                        (streamId, path, e) -> publishSourceCorruptedEvent(eventBatchRouter, path, streamId, e, rootId)
+                );
+
+                processUpdates = reader::processUpdates;
+                toDispose.add(reader);
+            }
 
             ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
             toDispose.add(() -> {
@@ -115,8 +139,7 @@ public class Main {
                 }
             });
 
-
-            ScheduledFuture<?> future = executorService.scheduleWithFixedDelay(reader::processUpdates, 0, configuration.getPullingInterval().toMillis(), TimeUnit.MILLISECONDS);
+            ScheduledFuture<?> future = executorService.scheduleWithFixedDelay(processUpdates, 0, configuration.getPullingInterval().toMillis(), TimeUnit.MILLISECONDS);
             awaitShutdown(lock, condition);
             future.cancel(true);
         } catch (IOException | InterruptedException e) {
@@ -157,16 +180,33 @@ public class Main {
     }
 
     @NotNull
-    private static Unit publishMessages(MessageRouter<RawMessageBatch> rawMessageBatchRouter, StreamId streamId, List<RawMessage.Builder> builders) {
+    private static Unit publishProtoMessages(MessageRouter<com.exactpro.th2.common.grpc.RawMessageBatch> rawMessageBatchRouter, StreamId streamId, List<? extends com.exactpro.th2.common.grpc.RawMessage.Builder> builders) {
         try {
-            RawMessageBatch.Builder builder = RawMessageBatch.newBuilder();
-            for (RawMessage.Builder msg : builders) {
+            com.exactpro.th2.common.grpc.RawMessageBatch.Builder builder = com.exactpro.th2.common.grpc.RawMessageBatch.newBuilder();
+            for (com.exactpro.th2.common.grpc.RawMessage.Builder msg : builders) {
                 builder.addMessages(msg);
             }
-            rawMessageBatchRouter.sendAll(builder.build());
+            rawMessageBatchRouter.sendAll(builder.build(), "raw");
         } catch (Exception e) {
             LOGGER.error("Cannot publish batch for {}", streamId, e);
         }
+        return Unit.INSTANCE;
+    }
+
+    @NotNull
+    private static Unit publishTransportMessages(MessageRouter<GroupBatch> rawMessageBatchRouter, StreamId streamId, List<? extends RawMessage.Builder> builders, String bookName, String groupName) {
+        try {
+            List<MessageGroup> groups = new ArrayList<>(builders.size());
+            for (RawMessage.Builder msgBuilder : builders) {
+                groups.add(new MessageGroup(List.of(msgBuilder.build())));
+            }
+
+            var batch = new GroupBatch(bookName, groupName, groups);
+            rawMessageBatchRouter.sendAll(batch, "transport-group");
+        } catch (Exception e) {
+            LOGGER.error("Cannot publish batch for {}", streamId, e);
+        }
+
         return Unit.INSTANCE;
     }
 
@@ -203,5 +243,4 @@ public class Main {
             lock.unlock();
         }
     }
-
 }

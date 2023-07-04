@@ -1,5 +1,5 @@
 /*
- *  Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+ *  Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,8 +24,9 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.6.21'
     id "org.owasp.dependencycheck" version "8.1.2"
     id "io.github.gradle-nexus.publish-plugin" version "1.0.0"
-
 }
+
+apply plugin: 'kotlin-kapt'
 
 group 'com.exactpro.th2'
 version release_version
@@ -42,32 +43,32 @@ repositories {
     }
     mavenLocal()
 
-    configurations.all {
+    configurations.configureEach {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
         resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     }
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:4.2.0')
-    api 'com.exactpro.th2:common:5.2.0'
-    api 'com.exactpro.th2:read-file-common-core:2.0.0-th2-4951-5256417699-8614fb0-SNAPSHOT'
+    api platform('com.exactpro.th2:bom:4.4.0-update-libs-5345334944-c71fdc9-SNAPSHOT')
+    implementation "com.exactpro.th2:common:5.3.0-separate-executor-5391854885-afab720-SNAPSHOT"
+    implementation "com.exactpro.th2:common-utils:2.1.0-transport-protocol-5347774882-e4aa8e6-SNAPSHOT"
+    implementation "com.exactpro.th2:read-file-common-core:2.1.0-transport-protocol-5453446678-15394bb-SNAPSHOT"
 
-    implementation('com.opencsv:opencsv:5.7.0') {
+    implementation ('com.opencsv:opencsv:5.7.1') {
         because("we need to write a correct CSV in case of free pattern is used")
     }
 
-    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation "javax.annotation:javax.annotation-api:1.3.2"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
     implementation "org.slf4j:slf4j-api"
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
-    testImplementation 'org.mockito:mockito-core:3.6.0'
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
 }
 
 test {
@@ -93,7 +94,7 @@ description = 'DataReaderClient'
 sourceCompatibility = JavaVersion.VERSION_11
 applicationName = 'service'
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -141,13 +142,14 @@ tasks.withType(PublishToMavenRepository) {
                         project.hasProperty('sonatypePassword'))
     }
 }
-tasks.withType(Sign) {
-    onlyIf { project.hasProperty('signingKey') &&
-            project.hasProperty('signingPassword')
+tasks.withType(Sign).configureEach {
+    onlyIf {
+        project.hasProperty('signingKey') &&
+                project.hasProperty('signingPassword')
     }
 }
 // disable running task 'initializeSonatypeStagingRepository' on a gitlab
-tasks.whenTaskAdded {task ->
+tasks.configureEach { task ->
     if(task.name.equals('initializeSonatypeStagingRepository') &&
             !(project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword'))
     ) {
