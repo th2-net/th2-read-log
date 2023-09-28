@@ -19,7 +19,6 @@ package com.exactpro.th2.readlog;
 import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.event.Event.Status;
 import com.exactpro.th2.common.event.EventUtils;
-import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.metrics.CommonMetrics;
@@ -102,7 +101,8 @@ public class Main {
                         configuration,
                         configuration.isSyncWithCradle()
                                 ? new CradleReaderState(commonFactory.getCradleManager().getStorage(),
-                                streamId -> commonFactory.newMessageIDBuilder().getBookName())
+                                streamId -> commonFactory.newMessageIDBuilder().getBookName(),
+                                CradleReaderState.WRAP_TRANSPORT)
                                 : new InMemoryReaderState(),
                         streamId -> MessageId.builder(),
                         (streamId, builders) -> publishTransportMessages(commonFactory.getTransportGroupBatchRouter(), streamId, builders, boxBookName),
@@ -117,7 +117,7 @@ public class Main {
                         = LogFileReader.getProtoLogFileReader(
                         configuration,
                         configuration.isSyncWithCradle()
-                                ? new CradleReaderState(commonFactory.getCradleManager().getStorage(), streamId -> boxBookName)
+                                ? new CradleReaderState(commonFactory.getCradleManager().getStorage(), streamId -> boxBookName, CradleReaderState.WRAP_PROTO)
                                 : new InMemoryReaderState(),
                         streamId -> commonFactory.newMessageIDBuilder().build(),
                         (streamId, builders) -> publishProtoMessages(commonFactory.getMessageRouterRawBatch(), streamId, builders),

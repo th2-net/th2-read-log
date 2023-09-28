@@ -19,7 +19,7 @@ package com.exactpro.th2.readlog.impl;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.TransportUtilsKt;
 import com.exactpro.th2.common.message.MessageUtils;
-import com.exactpro.th2.read.file.common.impl.ProtoLineParser;
+import com.exactpro.th2.read.file.common.impl.LineParser;
 import com.exactpro.th2.readlog.LogData;
 import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
@@ -36,11 +36,12 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
-public class ProtoRegexpContentParser extends ProtoLineParser {
+public class ProtoRegexpContentParser extends LineParser<RawMessage.Builder> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProtoRegexpContentParser.class);
     private final RegexLogParser parser;
 
     public ProtoRegexpContentParser(RegexLogParser parser) {
+        super(LineParser.PROTO);
         this.parser = requireNonNull(parser, "'Parser' parameter");
     }
 

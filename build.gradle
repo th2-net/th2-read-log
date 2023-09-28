@@ -14,12 +14,11 @@ apply plugin: "com.exactpro.th2.common-conventions"
 apply plugin: "com.exactpro.th2.docker-conventions"
 apply plugin: 'kotlin-kapt'
 
-
 dependencies {
     api platform("com.exactpro.th2:bom:4.5.0")
-    implementation "com.exactpro.th2:common:5.4.0-dev"
+    implementation "com.exactpro.th2:common:5.4.2-dev"
     implementation "com.exactpro.th2:common-utils:2.2.0-dev"
-    implementation "com.exactpro.th2:read-file-common-core:2.1.0-transport-protocol-+"
+    implementation "com.exactpro.th2:read-file-common-core:3.0.0-dev"
 
     implementation ("com.opencsv:opencsv:5.8") {
         because("we need to write a correct CSV in case of free pattern is used")

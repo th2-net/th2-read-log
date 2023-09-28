@@ -18,33 +18,26 @@ package com.exactpro.th2.readlog.impl;
 
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.RawMessage;
 import com.exactpro.th2.read.file.common.StreamId;
-import com.exactpro.th2.read.file.common.impl.TransportLineParser;
+import com.exactpro.th2.read.file.common.impl.LineParser;
 import com.exactpro.th2.readlog.LogData;
 import com.exactpro.th2.readlog.RegexLogParser;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class TransportRegexpContentParser extends TransportLineParser {
+public class TransportRegexpContentParser extends LineParser<RawMessage.Builder> {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransportRegexpContentParser.class);
     private final RegexLogParser parser;
 
     public TransportRegexpContentParser(RegexLogParser parser) {
+        super(LineParser.TRANSPORT);
         this.parser = requireNonNull(parser, "'Parser' parameter");
-    }
-
-    @NotNull
-    @Override
-    protected RawMessage.Builder lineToBuilder(@NotNull String readLine, @NotNull Charset charset) {
-        return super.lineToBuilder(readLine, charset);
     }
 
     @Nonnull
