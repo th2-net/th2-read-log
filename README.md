@@ -1,4 +1,4 @@
-# Log Reader User Manual 4.0.1
+# Log Reader User Manual 4.1.0
 
 ## Document Information
 
@@ -28,6 +28,7 @@ spec:
   custom-config:
       logDirectory: "log/dir"
       syncWithCradle: true
+      useTransport: true
       aliases:
         A:
           regexp: ".*"
@@ -91,6 +92,7 @@ spec:
 
 + logDirectory - the directory to watch files
 + syncWithCradle - enables synchronization with Cradle for timestamps and sequences that correspond to the alias
++ useTransport - enables using th2 transport protocol (default value: `false`)
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
@@ -192,10 +194,11 @@ logger.<logger_name>.level=<level>
 You can use this class to see how the log line is parsed by the read-log.
 Use TRACE level to get the information.
 
-**com.exactpro.th2.readlog.impl.RegexpContentParser**
+**com.exactpro.th2.readlog.impl.ProtoRegexpContentParser**
+**com.exactpro.th2.readlog.impl.TransportRegexpContentParser**
 
-You can use this class to see the resulted lines produced by **_RegexLogParser_**.
-Use TRACE level to get the information.
+You can use these classes to see the resulted lines produced by **_RegexLogParser_**.
+Produce Proto or Transport messages, respectively. Use TRACE level to get the information.
 
 **com.exactpro.th2.read.file.common.AbstractFileReader**
 
@@ -223,6 +226,10 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 4.1.0
+
++ Added support for th2 transport protocol
 
 ### 4.0.1
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.readlog;
 
 import java.io.StringWriter;
@@ -35,6 +36,7 @@ import java.util.stream.IntStream;
 import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.TransportUtilsKt;
 import com.opencsv.CSVWriter;
 import com.opencsv.ICSVWriter;
 import org.apache.commons.text.StringSubstitutor;
@@ -81,7 +83,7 @@ public class RegexLogParser {
         }
 
         LogData resultData = new LogData();
-        resultData.setDirection(direction);
+        resultData.setDirection(TransportUtilsKt.getTransport(direction));
 
         List<Integer> regexGroups = configuration.getGroups();
         if (configuration.isJoinGroups()) {
@@ -91,7 +93,7 @@ public class RegexLogParser {
         }
 
         if (resultData.getBody().isEmpty()) {
-            // fast way, nothing matches the regexp so we don't need to check for date pattern
+            // fast way, nothing matches the regexp, so we don't need to check for date pattern
             return resultData;
         }
 
@@ -187,7 +189,7 @@ public class RegexLogParser {
 
     private void addJoined(LogData data, List<List<String>> values, char delimiter) {
         var writer = new StringWriter();
-        ICSVWriter csvPrinter = createCsvWriter(writer, delimiter); // we can ignore closing because there is not IO
+        ICSVWriter csvPrinter = createCsvWriter(writer, delimiter); // we can ignore closing because there is no IO
         for (List<String> value : values) {
             csvPrinter.writeNext(value.toArray(String[]::new));
         }
