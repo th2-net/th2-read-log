@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.readlog;
 
 import java.io.StringWriter;
@@ -25,14 +26,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.readlog.cfg.AliasConfiguration;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.TransportUtilsKt;
 import com.opencsv.CSVWriter;
 import com.opencsv.ICSVWriter;
 import org.apache.commons.text.StringSubstitutor;
@@ -65,16 +69,21 @@ public class RegexLogParser {
             throw new IllegalArgumentException("Unknown alias '" + sessionAlias +"'. No configuration found" );
         }
 
-        LogData resultData = new LogData();
-
-        Pattern directionPattern = Objects.requireNonNull(configuration.getDirectionToPattern().get(streamId.getDirection()),
-                () -> "Pattern for direction " + streamId.getDirection() + " and session " + sessionAlias);
-        Matcher matcher = directionPattern.matcher(raw);
-        // check if the a string matches the direction from streamId
-        // skip line if it is not ours direction
-        if (!matcher.find()) {
-            return resultData;
+        Direction direction = null;
+        for (Entry<Direction, Pattern> entry : configuration.getDirectionToPattern().entrySet()) {
+            if (entry.getValue().matcher(raw).find()) {
+                direction = entry.getKey();
+                break;
+            }
         }
+        // check whether the line matches any direction regex
+        // if not it is not our line
+        if (direction == null) {
+            return LogData.EMPTY;
+        }
+
+        LogData resultData = new LogData();
+        resultData.setDirection(TransportUtilsKt.getTransport(direction));
 
         List<Integer> regexGroups = configuration.getGroups();
         if (configuration.isJoinGroups()) {
@@ -84,7 +93,7 @@ public class RegexLogParser {
         }
 
         if (resultData.getBody().isEmpty()) {
-            // fast way, nothing matches the regexp so we don't need to check for date pattern
+            // fast way, nothing matches the regexp, so we don't need to check for date pattern
             return resultData;
         }
 
@@ -180,7 +189,7 @@ public class RegexLogParser {
 
     private void addJoined(LogData data, List<List<String>> values, char delimiter) {
         var writer = new StringWriter();
-        ICSVWriter csvPrinter = createCsvWriter(writer, delimiter); // we can ignore closing because there is not IO
+        ICSVWriter csvPrinter = createCsvWriter(writer, delimiter); // we can ignore closing because there is no IO
         for (List<String> value : values) {
             csvPrinter.writeNext(value.toArray(String[]::new));
         }

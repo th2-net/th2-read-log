@@ -1,18 +1,17 @@
-name: Build and publish Docker distributions to Github Container Registry ghcr.io
+name: Dev release build and publish - Docker and Sonatype
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - dev-version-*
-    paths:
-      - gradle.properties
+    tags:
+      - \d+.\d+.\d+-dev
 
 jobs:
-  build-job:
+  build:
     uses: th2-net/.github/.github/workflows/compound-java.yml@main
     with:
       build-target: 'Docker,Sonatype'
+      runsOn: ubuntu-latest
+      gradleVersion: '7'
       docker-username: ${{ github.actor }}
       devRelease: true
     secrets:
