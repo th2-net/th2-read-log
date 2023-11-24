@@ -9,7 +9,7 @@ jobs:
   build:
     uses: th2-net/.github/.github/workflows/compound-java.yml@main
     with:
-      build-target: 'Docker,Sonatype'
+      build-target: 'Docker'
       runsOn: ubuntu-latest
       gradleVersion: '7'
       docker-username: ${{ github.actor }}
