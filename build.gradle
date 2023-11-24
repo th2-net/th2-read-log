@@ -16,9 +16,9 @@ apply plugin: 'kotlin-kapt'
 
 dependencies {
     api platform("com.exactpro.th2:bom:4.5.0")
-    implementation "com.exactpro.th2:common:5.4.2-dev"
+    implementation "com.exactpro.th2:common:5.7.1-dev"
     implementation "com.exactpro.th2:common-utils:2.2.0-dev"
-    implementation "com.exactpro.th2:read-file-common-core:3.0.0-dev"
+    implementation "com.exactpro.th2:read-file-common-core:3.1.0-dev"
 
     implementation ("com.opencsv:opencsv:5.8") {
         because("we need to write a correct CSV in case of free pattern is used")
