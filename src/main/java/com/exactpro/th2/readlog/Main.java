@@ -18,12 +18,16 @@ package com.exactpro.th2.readlog;
 
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -49,6 +53,7 @@ import com.exactpro.th2.read.file.common.StreamId;
 import com.exactpro.th2.read.file.common.impl.DefaultFileReader;
 import com.exactpro.th2.read.file.common.impl.RecoverableBufferedReaderWrapper;
 import com.exactpro.th2.read.file.common.state.impl.InMemoryReaderState;
+import com.exactpro.th2.readlog.cfg.AliasConfiguration;
 import com.exactpro.th2.readlog.cfg.LogReaderConfiguration;
 import com.exactpro.th2.readlog.impl.RegexpContentParser;
 import kotlin.Unit;
@@ -115,7 +120,7 @@ public class Main {
                     new RegexpContentParser(logParser),
                     new MovedFileTracker(configuration.getLogDirectory()),
                     new InMemoryReaderState(),
-                    Main::createSource
+                    (streamId, path) -> createSource(streamId, path, configuration.getAliases())
             )
                     .readFileImmediately()
                     .acceptNewerFiles()
@@ -190,9 +195,15 @@ public class Main {
         return Unit.INSTANCE;
     }
 
-    private static FileSourceWrapper<LineNumberReader> createSource(StreamId streamId, Path path) {
+    private static FileSourceWrapper<LineNumberReader> createSource(StreamId streamId, Path path, Map<String, AliasConfiguration> configs) {
         try {
-            return new RecoverableBufferedReaderWrapper(new LineNumberReader(Files.newBufferedReader(path)));
+            AliasConfiguration cfg = configs.get(streamId.getSessionAlias());
+            Charset charset = cfg == null ? StandardCharsets.UTF_8 : cfg.getCharset();
+            return new RecoverableBufferedReaderWrapper(
+                    new LineNumberReader(
+                            Files.newBufferedReader(path, Objects.requireNonNullElse(charset, StandardCharsets.UTF_8))
+                    )
+            );
         } catch (IOException e) {
             return ExceptionUtils.rethrow(e);
         }

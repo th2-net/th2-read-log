@@ -19,6 +19,8 @@ package com.exactpro.th2.readlog.cfg;
 import com.exactpro.th2.common.grpc.Direction;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +34,7 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
@@ -59,6 +62,9 @@ public class AliasConfiguration {
     @JsonPropertyDescription("Defines time zone that should be used to parse the timestamp from the log file."
             + "It not set the time zone from the local machine will be taken")
     private ZoneId timestampZone;
+
+    @JsonDeserialize(using = CharsetDeserializer.class)
+    private Charset charset = StandardCharsets.UTF_8;
 
     @JsonCreator
     public AliasConfiguration(
@@ -148,5 +154,13 @@ public class AliasConfiguration {
 
     public void setTimestampZone(ZoneOffset timestampZone) {
         this.timestampZone = timestampZone;
+    }
+
+    public Charset getCharset() {
+        return charset;
+    }
+
+    public void setCharset(Charset charset) {
+        this.charset = charset;
     }
 }

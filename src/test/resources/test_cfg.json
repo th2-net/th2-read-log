@@ -7,7 +7,8 @@
       "directionRegexps": {
         "FIRST": "abc",
         "SECOND": "cde"
-      }
+      },
+      "charset": "UTF_16"
     },
     "B": {
       "regexp": ".*",
