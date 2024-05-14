@@ -63,3 +63,8 @@ tasks.register('integrationTest', Test) {
         includeTags('integration-test')
     }
 }
+
+application {
+    applicationName = "service"
+    mainClassName = "com.exactpro.th2.readlog.Main"
+}
