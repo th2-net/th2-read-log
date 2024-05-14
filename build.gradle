@@ -65,6 +65,5 @@ tasks.register('integrationTest', Test) {
 }
 
 application {
-    applicationName = "service"
     mainClassName = "com.exactpro.th2.readlog.Main"
 }
