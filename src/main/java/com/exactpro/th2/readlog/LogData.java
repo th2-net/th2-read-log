@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.readlog;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.Direction;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-final public class LogData {
+public final class LogData {
+    public static LogData EMPTY = new LogData(List.of());
     private List<String> body;
     private String rawTimestamp;
-    private LocalDateTime parsedTimestamp;
+    private Instant parsedTimestamp;
+    private Direction direction;
 
-    private ZoneId timestampZone;
+    public LogData() {
+        this(null);
+    }
+
+    private LogData(List<String> body) {
+        this.body = body;
+    }
 
     public void addBody(String item) {
         initIfNeeded();
@@ -45,20 +55,20 @@ final public class LogData {
         this.rawTimestamp = rawTimestamp;
     }
 
-    public LocalDateTime getParsedTimestamp() {
+    public Instant getParsedTimestamp() {
         return parsedTimestamp;
     }
 
-    public void setParsedTimestamp(LocalDateTime localDateTime) {
+    public void setParsedTimestamp(Instant localDateTime) {
         this.parsedTimestamp = localDateTime;
     }
 
-    public ZoneId getTimestampZone() {
-        return timestampZone;
+    public Direction getDirection() {
+        return direction;
     }
 
-    public void setTimestampZone(ZoneId timestampZone) {
-        this.timestampZone = timestampZone;
+    public void setDirection(Direction direction) {
+        this.direction = direction;
     }
 
     private void initIfNeeded() {

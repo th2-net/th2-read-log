@@ -19,6 +19,7 @@ package com.exactpro.th2.readlog.cfg;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
@@ -38,11 +39,18 @@ class TestLogReaderConfiguration {
             LogReaderConfiguration cfg = LogReaderConfiguration.MAPPER.readValue(input, LogReaderConfiguration.class);
             assertEquals(Duration.ofSeconds(5), cfg.getPullingInterval());
             assertEquals(Set.of("A", "B"), cfg.getAliases().keySet());
-            assertEquals(Set.of(Direction.FIRST, Direction.SECOND), cfg.getAliases().get("A").getDirectionToPattern().keySet());
-            assertEquals(Set.of(Direction.FIRST), cfg.getAliases().get("B").getDirectionToPattern().keySet());
-            assertEquals(".*", Objects.requireNonNull(cfg.getAliases().get("A").getRegexp()).pattern());
-            assertEquals("202.*$", Objects.requireNonNull(cfg.getAliases().get("B").getTimestampRegexp()).pattern());
-            assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(cfg.getAliases().get("B").getTimestampFormat()).getResolverFields());
+            AliasConfiguration aliasA = cfg.getAliases().get("A");
+            AliasConfiguration aliasB = cfg.getAliases().get("B");
+            assertEquals(Set.of(Direction.FIRST, Direction.SECOND), aliasA.getDirectionToPattern().keySet());
+            assertEquals(Set.of(Direction.FIRST), aliasB.getDirectionToPattern().keySet());
+            assertEquals(".*", Objects.requireNonNull(aliasA.getRegexp()).pattern());
+            assertEquals("202.*$", Objects.requireNonNull(aliasB.getTimestampRegexp()).pattern());
+            assertEquals(DateTimeFormatter.ofPattern("yyyy.MM.dd").getResolverFields(), Objects.requireNonNull(aliasB.getTimestampFormat()).getResolverFields());
+            assertEquals(
+                    Instant.parse("2022-10-31T10:35:00Z"),
+                    aliasB.getSkipBefore(),
+                    "unexpected 'skipBefore' value"
+            );
         }
     }
 

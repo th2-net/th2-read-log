@@ -43,7 +43,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "this a test string, 123 and no more");
+        LogData data = parser.parse(new StreamId("test"), "this a test string, 123 and no more");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(
@@ -67,7 +67,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "[test] should not try to process ${3} and ${variable}");
+        LogData data = parser.parse(new StreamId("test"), "[test] should not try to process ${3} and ${variable}");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(
@@ -92,7 +92,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "A, 42; B, 53");
+        LogData data = parser.parse(new StreamId("test"), "A, 42; B, 53");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(
@@ -119,7 +119,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "A, 42");
+        LogData data = parser.parse(new StreamId("test"), "A, 42");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(
@@ -145,7 +145,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "A, 42; B, 53");
+        LogData data = parser.parse(new StreamId("test"), "A, 42; B, 53");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(
@@ -171,7 +171,7 @@ public class TestRegexLogParserJoining {
         ));
         RegexLogParser parser = new RegexLogParser(Map.of("test", configuration));
 
-        LogData data = parser.parse(new StreamId("test", Direction.FIRST), "A, 42; B, 53");
+        LogData data = parser.parse(new StreamId("test"), "A, 42; B, 53");
         List<String> body = data.getBody();
         Assertions.assertEquals(1, body.size(), () -> "Unexpected strings: " + body);
         Assertions.assertEquals(

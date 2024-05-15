@@ -1,4 +1,4 @@
-# Log Reader User Manual 3.5.3
+# Log Reader User Manual 4.2.0
 
 ## Document Information
 
@@ -27,6 +27,8 @@ spec:
   type: th2-read
   custom-config:
       logDirectory: "log/dir"
+      syncWithCradle: true
+      useTransport: true
       aliases:
         A:
           regexp: ".*"
@@ -44,6 +46,7 @@ spec:
           timestampRegexp: "^202.+?(?= QUICK)"
           timestampFormat: "yyyy-MM-dd HH:mm:ss"
           timestampZone: UTC
+          skipBefore: "2022-10-31T12:00:00Z"
         D:
           regexp: ".*"
           pathFilter: "fileC.*\\.log"
@@ -88,6 +91,8 @@ spec:
 ##### Reader configuration
 
 + logDirectory - the directory to watch files
++ syncWithCradle - enables synchronization with Cradle for timestamps and sequences that correspond to the alias
++ useTransport - enables using th2 transport protocol (default value: `false`)
 + aliases - the mapping between alias and files that correspond to that alias
     + pathFilter - filter for files that correspond to that alias
     + regexp - the regular expression to extract data from the source lines
@@ -104,6 +109,9 @@ spec:
     + timestampFormat - the format for the timestamp extract from the log's line. **Works only with specified _timestampRegexp_ parameter**.
       If _timestampFormat_ is specified the timestamp extract with _timestampRegexp_ will be parsed using this format and used as a message's timestamp.
     + timestampZone - the zone which should be used to process the timestamp from the log file
+    + skipBefore - the parameter defines the minimum timestamp in UTC (ISO format) for log messages.
+      If log message has timestamp less than the specified one it will be dropped.
+      **NOTE: the parameter only works if 'timestampRegexp' and 'timestampFormat' are specified**
     + joinGroups - enables joining groups into a message in CSV format. Can be used to extract generic data from the log. Disabled by default.
     + groupsJoinDelimiter - the delimiter that will be used to join groups from the _regexp_ parameter. **Works only if _joinGroups_ is enabled**. The default value is `,`.
     + headersFormat - the headers' definition. The reader uses the keys as headers. The value to the key will be converted to a value for each match in the current line.
@@ -148,6 +156,55 @@ spec:
       attributes: ['raw', 'publish', 'store']
 ```
 
+##### Logging
+
+This block describes which classes can be used to get more information about read-log work.
+You can tweak their logging level and you will see extra information in the read-log logs.
+
+###### Log4j2 config
+
+Here is an example of log4j2 logging configuration that can be set in **loggingConfig** parameter for the component:
+
+```yaml
+loggingConfig: |
+  name=Th2Logger
+  # Console appender configuration
+  appender.console.type=Console
+  appender.console.name=consoleLogger
+  appender.console.layout.type=PatternLayout
+  appender.console.layout.pattern=%d{dd MMM yyyy HH:mm:ss,SSS} %-6p [%-15t] %c - %m%n
+  logger.th2.name=com.exactpro.th2
+  logger.th2.level=TRACE
+  rootLogger.level=INFO
+  rootLogger.appenderRef.stdout.ref=consoleLogger
+```
+
+If you need to add extra logging you can do it by adding a line in the following format:
+```properties
+logger.<logger_name>.name=<full_class_name>
+logger.<logger_name>.level=<level>
+```
+
+**NOTE: the _logger_name_ must be unique**.
+
+###### Classes
+
+**com.exactpro.th2.readlog.RegexLogParser**
+
+You can use this class to see how the log line is parsed by the read-log.
+Use TRACE level to get the information.
+
+**com.exactpro.th2.readlog.impl.ProtoRegexpContentParser**
+**com.exactpro.th2.readlog.impl.TransportRegexpContentParser**
+
+You can use these classes to see the resulted lines produced by **_RegexLogParser_**.
+Produce Proto or Transport messages, respectively. Use TRACE level to get the information.
+
+**com.exactpro.th2.read.file.common.AbstractFileReader**
+
+You can use this class to get information about how the reader processes files.
+Use either DEBUG or TRACE level
+
 ### Examples
 
 #### Example 1
@@ -170,6 +227,34 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 
 ## Changes
 
+### 4.2.0
+
++ Migrate to th2 gradle plugin `0.0.6`
++ Updated bom: `4.6.1`
++ Updated common: `5.11.0-dev`
++ Updated read-file-common-core: `3.3.0-dev`
++ Updated jakarta.annotation-api: `3.0.0`
++ Updated opencsv: `5.9`
+
+### 4.1.1
+
++ Update core version to 3.1.0-dev
++ Update common to 5.7.1-dev
+
+### 4.1.0
+
++ Added support for th2 transport protocol
+
+### 4.0.1
+
++ Added dev-release GitHub workflow
+
+### 4.0.0
+
++ Updated common to 5.0.0
+    + Migration to books-pages
++ Updated read-file-common-core to 2.0.0
+
 ### 3.5.3
 
 + Updated common to 3.44.1
@@ -182,6 +267,16 @@ Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u
 ### 3.5.1
 
 + Fixed release workflow
+
+
+### 3.5.0
+
++ Update dependencies with vulnerabilities
+  + log4j 1.2 is excluded
+  + kotlin updated to 1.6.21
++ Parameter `skipBefore` for filtering log messages by timestamp from the file
++ Parameter `syncWithCradle` for timestamp and sequence synchronization with Cradle.
+  Enabled by default.
 
 ### 3.5.0
 

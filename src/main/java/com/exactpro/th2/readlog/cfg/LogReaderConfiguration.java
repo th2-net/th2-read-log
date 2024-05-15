@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.kotlin.KotlinFeature;
 import com.fasterxml.jackson.module.kotlin.KotlinModule;
 
 public class LogReaderConfiguration {
     public static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new KotlinModule())
+            .registerModule(new KotlinModule.Builder()
+                    .enable(KotlinFeature.NullIsSameAsDefault)
+                    .build())
             .registerModule(new JavaTimeModule());
 
     @JsonProperty(required = true)
@@ -45,6 +48,12 @@ public class LogReaderConfiguration {
     private CommonFileReaderConfiguration common = new CommonFileReaderConfiguration();
 
     private Duration pullingInterval = Duration.ofSeconds(5);
+
+    @JsonPropertyDescription("Enables synchronization information about last timestamp and sequence for stream with Cradle")
+    private boolean syncWithCradle = true;
+
+    @JsonPropertyDescription("Enables using th2 transport protocol")
+    private boolean useTransport = false;
 
     @JsonCreator
     public LogReaderConfiguration(@JsonProperty("logDirectory") Path logDirectory) {
@@ -77,5 +86,21 @@ public class LogReaderConfiguration {
 
     public void setPullingInterval(Duration pullingInterval) {
         this.pullingInterval = pullingInterval;
+    }
+
+    public boolean isSyncWithCradle() {
+        return syncWithCradle;
+    }
+
+    public void setSyncWithCradle(boolean syncWithCradle) {
+        this.syncWithCradle = syncWithCradle;
+    }
+
+    public void setUseTransport(boolean useTransport) {
+        this.useTransport = useTransport;
+    }
+
+    public boolean isUseTransport() {
+        return useTransport;
     }
 }
