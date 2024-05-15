@@ -1,4 +1,4 @@
-# Log Reader User Manual 4.1.1
+# Log Reader User Manual 4.2.0
 
 ## Document Information
 
@@ -226,6 +226,15 @@ Regex group: 2
 Output: 8=FIXT.1.1\u00019=66\u000135=A\u000134=1\u000149=NFT2_FIX1\u000156=FGW\u000198=0\u0001108=10\u0001141=Y\u0001554=123\u00011137=9\u000110=0
 
 ## Changes
+
+### 4.2.0
+
++ Migrate to th2 gradle plugin `0.0.6`
++ Updated bom: `4.6.1`
++ Updated common: `5.11.0-dev`
++ Updated read-file-common-core: `3.3.0-dev`
++ Updated jakarta.annotation-api: `3.0.0`
++ Updated opencsv: `5.9`
 
 ### 4.1.1
 
