@@ -2,7 +2,7 @@ plugins {
     id 'application'
     id 'org.jetbrains.kotlin.jvm' version '1.8.22'
     id 'org.jetbrains.kotlin.kapt' version '1.8.22'
-    id 'com.exactpro.th2.gradle.component' version '0.0.6'
+    id 'com.exactpro.th2.gradle.component' version '0.1.1'
 }
 
 group 'com.exactpro.th2'
@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation "com.exactpro.th2:common:5.11.0-dev"
+    implementation "com.exactpro.th2:common:5.14.0-dev"
     implementation "com.exactpro.th2:common-utils:2.2.3-dev"
     implementation "com.exactpro.th2:read-file-common-core:3.3.0-dev"
 
